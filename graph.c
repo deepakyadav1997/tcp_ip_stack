@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include "graph.h"
+#include "net.h"
 #include<assert.h>
 #include<stdlib.h>
 #include<string.h>
@@ -15,6 +16,7 @@ node_t* create_graph_node(graph_t* graph,char* node_name){
     node_t *node = calloc(1,sizeof(node_t));
     strncpy(node->node_name,node_name,NODE_NAME_SIZE);
     node->node_name[NODE_NAME_SIZE-1] = '\0'; // so that string ends
+    init_node_nw_prop(&node->node_nw_prop);
     glthread_add_next(&graph->node_list,&node->graph_glue);
     return node;
 }
@@ -45,6 +47,12 @@ void insert_link_between_two_nodes(node_t*  node1,
     empty_slot = get_node_intf_available_slot(node2);
     assert(empty_slot != -1);
     node2->intf[empty_slot] = &link->intf2;
+    //init interface properties
+    init_intf_prop(&link->intf1.intf_nw_prop);
+    init_intf_prop(&link->intf2.intf_nw_prop);
+    //assign mac address to interface randomly
+    interface_assign_mac_address(&link->intf1);
+    interface_assign_mac_address(&link->intf2);
 }
 void dump_graph(graph_t *graph){
 
@@ -53,14 +61,13 @@ void dump_graph(graph_t *graph){
     
     printf("Topology Name = %s\n", graph->topology_name);
 
-   // ITERATE_GLTHREAD_BEGIN(&graph->node_list, curr){
-    for(curr = graph->node_list.right;curr != NULL;curr = curr->right){
+    ITERATE_GLTHREAD_BEGIN(&graph->node_list, curr){
+    
         node = graph_glue_to_node(curr);
-        printf("%d \n",node->graph_glue.right);
         dump_node(node);    
-    }
+    
        
-   // } ITERATE_GLTHREAD_END;
+    } ITERATE_GLTHREAD_END;
 }
 
 void dump_node(node_t *node){

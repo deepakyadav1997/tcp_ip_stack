@@ -8,7 +8,7 @@
 #define NODE_NAME_SIZE 32
 #define MAX_INTERFACES_PER_NODE 5
 #define MAX_GRAPH_NAME 32
-
+#include "net.h"
 
 typedef struct link_ link_t;
 typedef struct node_ node_t;
@@ -19,7 +19,7 @@ typedef struct interface_{
     char if_name[IF_NAME_SIZE];
     struct node_ *att_node;  //owning node
     struct link_ *link;
-    
+    intf_nw_prop_t intf_nw_prop;
 }interface_t;
 
  struct link_{
@@ -37,6 +37,7 @@ struct node_{
     char node_name[NODE_NAME_SIZE];
     interface_t* intf[MAX_INTERFACES_PER_NODE];
     glthread_t graph_glue;
+    node_nw_prop_t node_nw_prop;
 };
 GLTHREAD_TO_STRUCT(graph_glue_to_node, node_t, graph_glue,glthreadptr);
 
