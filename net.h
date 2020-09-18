@@ -66,5 +66,9 @@ void dump_intf_props(interface_t *interface);
 //IP address manipulation
 unsigned int convert_ip_from_str_to_int(char *ip_addr);
 void convert_ip_from_int_to_str(unsigned int ip_addr, char *output_buffer);
+unsigned int binary_to_int(int* binary,unsigned int end,int start);
+void int_to_binary(unsigned int number,int* array,unsigned int size);
+
+interface_t * node_get_matching_subnet_interface(node_t *node, char *ip_addr);
 
 #endif

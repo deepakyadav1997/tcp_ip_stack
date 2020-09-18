@@ -120,7 +120,7 @@ static unsigned int power(unsigned int a, unsigned int b){
     return result;
 }
 
-static void int_to_binary(unsigned int number,int* array,unsigned int size){
+void int_to_binary(unsigned int number,int* array,unsigned int size){
 
     for(int i = size-1;i>=0;i--){
         array[i] = number%2;
@@ -128,7 +128,7 @@ static void int_to_binary(unsigned int number,int* array,unsigned int size){
     }
 }
 
-static unsigned int binary_to_int(int* binary,unsigned int end,int start){
+unsigned int binary_to_int(int* binary,unsigned int end,int start){
     unsigned int result = 0;
     unsigned int current_power_of_two = 1;
     for (int i = end;i>=start;i--){
@@ -167,9 +167,9 @@ unsigned int convert_ip_from_str_to_int(char *ip_addr){
 void convert_ip_from_int_to_str(unsigned int ip_addr, char *output_buffer){
     int binary[32];
     int_to_binary(ip_addr,binary,32);
-    for(int i = 0;i<32;i++){
-        printf("%d",binary[i]);
-    }
+    // for(int i = 0;i<32;i++){
+    //     printf("%d",binary[i]);
+    // }
     int first_octet = binary_to_int(binary,7,0);
     int second_octet = binary_to_int(binary,15,8);
     int third_octet = binary_to_int(binary,23,16);
@@ -177,3 +177,22 @@ void convert_ip_from_int_to_str(unsigned int ip_addr, char *output_buffer){
     sprintf(output_buffer,"%d.%d.%d.%d\0",first_octet,second_octet,third_octet,fourth_octet);
 }
 
+interface_t * node_get_matching_subnet_interface(node_t *node, char *ip_addr){
+    interface_t* current_interface;
+    for(int i = 0;i<MAX_INTERFACES_PER_NODE;i++){
+        current_interface = node->intf[i];
+        if(current_interface == NULL){
+            return NULL;
+        }
+        char mask = current_interface->intf_nw_prop.mask;
+        char masked_ip[32];
+        apply_mask(ip_addr,mask,masked_ip);
+        char masked_interface_ip[32];
+        char* interface_ip = current_interface->intf_nw_prop.ip_add.ip_addr;
+        apply_mask(interface_ip,mask,masked_interface_ip);
+        if(strncmp(masked_interface_ip,masked_ip,16) == 0){
+            return current_interface;
+        }
+    }
+    return NULL;
+}
