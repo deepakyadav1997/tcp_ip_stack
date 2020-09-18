@@ -51,7 +51,7 @@ static inline void init_intf_prop(intf_nw_prop_t* intf_nw_prop){
 
 }
 
-//configuration apis
+//configuration api's
 bool_t node_set_loopback_address(node_t *node, char *ip_addr);
 bool_t node_set_intf_ip_address(node_t *node, char *local_if, char *ip_addr, char mask);
 bool_t node_unset_intf_ip_address(node_t *node, char *local_if);

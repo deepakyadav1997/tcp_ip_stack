@@ -110,3 +110,70 @@ void dump_nw_graph(graph_t *graph){
     } ITERATE_GLTHREAD_END(&graph->node_list, curr);
 
 }
+
+static unsigned int power(unsigned int a, unsigned int b){
+    double result = 1;
+    while(b > 0){
+        result *= a;
+        b--;
+    }
+    return result;
+}
+
+static void int_to_binary(unsigned int number,int* array,unsigned int size){
+
+    for(int i = size-1;i>=0;i--){
+        array[i] = number%2;
+        number = number/2;
+    }
+}
+
+static unsigned int binary_to_int(int* binary,unsigned int end,int start){
+    unsigned int result = 0;
+    unsigned int current_power_of_two = 1;
+    for (int i = end;i>=start;i--){
+        result += binary[i]*current_power_of_two;
+        current_power_of_two *= 2;
+    }
+    return result;
+}
+
+unsigned int convert_ip_from_str_to_int(char *ip_addr){
+    int max_len = 16; // IPv4 string cant be longer than 15 chars + \0
+    if(strlen(ip_addr) > 16){
+        printf("Error! IP address string invalid.\n");
+        assert(0);
+    }
+    int sum[32],part_sum[8];
+    int temp_sum = 0;
+    unsigned int final_sum = 0;
+    int current_octet = 3;
+
+    for(int i = 0;i<=strlen(ip_addr);i++){
+        if(ip_addr[i] == '.' || ip_addr[i] == '\0'){
+            final_sum += (temp_sum*power(256,current_octet));
+            //printf("%u %u\n",temp_sum,power(256,current_octet));
+            current_octet--;
+            temp_sum = 0;
+            if(ip_addr[i] == '\0' || current_octet == -1)
+                break;
+        }
+        else{
+            temp_sum = temp_sum*10+(ip_addr[i]-48); // converting char to digits
+        }
+    }
+    return final_sum;
+}
+void convert_ip_from_int_to_str(unsigned int ip_addr, char *output_buffer){
+    int binary[32];
+    int_to_binary(ip_addr,binary,32);
+    for(int i = 0;i<32;i++){
+        printf("%d",binary[i]);
+    }
+    int first_octet = binary_to_int(binary,7,0);
+    int second_octet = binary_to_int(binary,15,8);
+    int third_octet = binary_to_int(binary,23,16);
+    int fourth_octet = binary_to_int(binary,31,24);
+    sprintf(output_buffer,"%d.%d.%d.%d\0",first_octet,second_octet,third_octet,fourth_octet);
+}
+
