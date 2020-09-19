@@ -24,7 +24,7 @@ net.o:net.c
 	${CC} ${CFLAGS} -c -I . net.c -o net.o
 utils.o:utils.c
 	${CC} ${CFLAGS} -c -I . utils.c -o utils.o
-CommandParser/libcli.a
+CommandParser/libcli.a:
 	(cd CommandParser;make)
 
 clean:
