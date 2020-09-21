@@ -14,6 +14,6 @@ void apply_mask(char *prefix, char mask, char *str_prefix){
 }
 
 void layer2_fill_with_broadcast_mac(char *mac_array){
-    // Assuming mac is always 8 bytes as per the struct definition
-    memset(mac_array,255,8);
+    // Assuming mac is always  bytes as per the struct definition
+    memset(mac_array,255,6);
 }

@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <memory.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <netdb.h> /*for struct hostent*/
@@ -161,5 +162,19 @@ int pkt_recieve(node_t *node,interface_t *interface,char* pkt,unsigned int pkt_s
 
     //entry point of tcp-ip stack
     printf("msg recvd :%s  on node %s interdace %s\n",pkt,node->node_name,interface->if_name);
+    return 0;
+}
+
+int send_pkt_flood(node_t *node, interface_t *exempted_intf,char *pkt, unsigned int pkt_size){
+    interface_t * current;
+    for(int i = 0;i< MAX_INTERFACES_PER_NODE;i++){
+        current = node->intf[i];
+        if(!current){
+            return 0;
+        }
+        if(current = exempted_intf)
+            continue;
+        send_packet_out(pkt,pkt_size,current);
+    }
     return 0;
 }

@@ -13,4 +13,6 @@ void network_start_pkt_receiver_thread(graph_t * topology);
 int send_packet_out(char *pkt,unsigned int pkt_size, interface_t * outgoing_interface);
 int pkt_recieve(node_t *node,interface_t *interface,char* pkt,unsigned int pkt_size);
 
+int send_pkt_flood(node_t *node, interface_t *exempted_intf,char *pkt, unsigned int pkt_size);
+
 #endif

@@ -11,15 +11,15 @@ typedef struct node_ node_t;
 //shorthand macros
 #define IF_MAC(intfptr) ((intfptr)->intf_nw_prop.mac.mac)
 #define IF_IP(intfptr)  ((intfptr)->intf_nw_prop.ip_add.ip_addr)
-#define IS_INTF_L3_MODE(intf_ptr) ((intfptr)->intf_nw_prop.is_ipaddr_config)
 #define NODE_LOOPBACK_ADDR(nodeptr) (nodeptr)->node_nw_prop.lb_addr.ip_addr
+#define IS_INTF_L3_MODE(intf_ptr)    (intf_ptr->intf_nw_prop.is_ipaddr_config == TRUE)
 
 typedef struct ip_add_{
     char ip_addr[16];
 }ip_add_t;
 
 typedef struct mac_add_{
-    char mac[8];
+    char mac[6];
 }mac_add_t;
 
 typedef struct node_nw_prop_{
@@ -46,7 +46,7 @@ typedef struct intf_nw_prop_{
 static inline void init_intf_prop(intf_nw_prop_t* intf_nw_prop){
     intf_nw_prop->is_ipaddr_config = FALSE;
     intf_nw_prop->mask = 32;
-    memset(intf_nw_prop->mac.mac,0,8);
+    memset(intf_nw_prop->mac.mac,0,6);
     memset(intf_nw_prop->ip_add.ip_addr,0,16);
 
 }
