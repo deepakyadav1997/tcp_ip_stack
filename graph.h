@@ -1,6 +1,7 @@
 #ifndef __GRAPH__
 #define __GRAPH__
 #include "glthreads_lib/glthread.h"
+#include "communication.h"
 #include<assert.h>
 #include<string.h>
 
@@ -37,6 +38,8 @@ struct node_{
     char node_name[NODE_NAME_SIZE];
     interface_t* intf[MAX_INTERFACES_PER_NODE];
     glthread_t graph_glue;
+    unsigned int udp_port_number;
+    int udp_socket_fd;
     node_nw_prop_t node_nw_prop;
 };
 GLTHREAD_TO_STRUCT(graph_glue_to_node, node_t, graph_glue,glthreadptr);

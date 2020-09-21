@@ -7,7 +7,8 @@ OBJS=glthreads_lib/glthread.o \
 		  topologies.o	\
 		  net.o			\
 		  utils.o		\
-		  nwcli.o
+		  nwcli.o		\
+		  communication.o
 
 test.exe:testapp.o ${OBJS}	CommandParser/libcli.a
 	${CC} ${CFLAGS} testapp.o ${OBJS} -o test.exe ${LIBS}
@@ -26,15 +27,21 @@ net.o:net.c
 utils.o:utils.c
 	${CC} ${CFLAGS} -c -I . utils.c -o utils.o
 nwcli.o:nwcli.c
-	${CC} ${CFLAGS} -c -I . nwcli.c -o nwcli.o	
-CommandParser/libcli.a:
-	(cd CommandParser;make)
+	${CC} ${CFLAGS} -c -I . nwcli.c -o nwcli.o
+communication.o:communication.c
+	${CC} ${CFLAGS}  -c -I . communication.c -o communication.o 
+
+# CommandParser/libcli.a:
+# 	(cd CommandParser;make)
 
 clean:
 	rm *.o
 	rm glthreads_lib/glthread.o
 	rm *exe
+clean_all:
+	clean
 	(cd CommandParser;make clean)
 all:
-	make
 	(cd CommandParser;make)
+	make
+	
