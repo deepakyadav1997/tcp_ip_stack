@@ -19,18 +19,28 @@ typedef struct ip_add_{
 }ip_add_t;
 
 typedef struct mac_add_{
-    char mac[6];
+    unsigned char mac[6];
 }mac_add_t;
 
+//Forward declaration
+typedef struct arp_table_ arp_table_t;
+
 typedef struct node_nw_prop_{
+    // Layer 2 properties
+    arp_table_t * arp_table;
+
+
     //Layer 3 properties
      bool_t is_lb_addr_config ;
      ip_add_t lb_addr;
 }node_nw_prop_t;
 
+extern void init_arp_table(arp_table_t ** arp_table);
+
 static inline void init_node_nw_prop(node_nw_prop_t * node_nw_prop){
     node_nw_prop->is_lb_addr_config = FALSE;
     memset(node_nw_prop->lb_addr.ip_addr,0,16);
+    init_arp_table(&(node_nw_prop->arp_table));
 }
 
 typedef struct intf_nw_prop_{
@@ -70,5 +80,8 @@ unsigned int binary_to_int(int* binary,unsigned int end,int start);
 void int_to_binary(unsigned int number,int* array,unsigned int size);
 
 interface_t * node_get_matching_subnet_interface(node_t *node, char *ip_addr);
+
+//total_buffer_size =  MAX_PACKET_BUFFER_SIZE - IF_NAME_SIZE
+char* pkt_buffer_shift_right(char* pkt,unsigned int pkt_size,unsigned int total_buffer_size);
 
 #endif

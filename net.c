@@ -1,7 +1,9 @@
 #include<stdio.h>
+#include<assert.h>
+#include<stdlib.h>
+
 #include "graph.h"
 #include "net.h"
-#include<assert.h>
 #include "utils.h"
 
 bool_t node_set_loopback_address(node_t *node, char *ip_addr){
@@ -35,28 +37,41 @@ bool_t node_unset_intf_ip_address(node_t *node, char *local_if){
     interface->intf_nw_prop.is_ipaddr_config = FALSE;
     return TRUE;   
 }
-//Just random number generator 
-static unsigned int hash_code(void *ptr,unsigned int size){
-    unsigned int value = 0,i = 0;
-    char* str = (char*)ptr;
-    while(i<size){
-        value+=*str;
-        value*=22;
-        str++;
-        i++;
-    }
-    return value;
-}
+// //Just random number generator 
+// static unsigned int hash_code(void *ptr,unsigned int size){
+//     unsigned int value = 0,i = 0;
+//     char* str = (char*)ptr;
+//     while(i<size){
+//         value+=*str;
+//         value*=22;
+//         str++;
+//         i++;
+//     }
+//     return value;
+// }
 
 void interface_assign_mac_address(interface_t *interface){
     node_t* node = interface->att_node;
     assert(node);
-    unsigned int hash_code_val = 0;
-    hash_code_val = hash_code(node->node_name,NODE_NAME_SIZE);
-    hash_code_val *= hash_code(interface->if_name,IF_NAME_SIZE);
+    unsigned int hash_code_val = rand();
+    // hash_code_val = hash_code(node->node_name,NODE_NAME_SIZE);
+    //  printf("Hash code %u\n",hash_code_val);
+    // hash_code_val *= hash_code(interface->if_name,IF_NAME_SIZE);
     memset(IF_MAC(interface),0,sizeof(IF_MAC(interface)));
-    memcpy(IF_MAC(interface),(char*)&hash_code_val,sizeof(unsigned int));
-    //printf("Mac is set to %d\n",IF_MAC(interface));
+    //memcpy(IF_MAC(interface),(char*)&hash_code_val,sizeof(unsigned int));
+   
+    IF_MAC(interface)[0] = hash_code_val%255;
+    IF_MAC(interface)[1] = hash_code_val%254;
+    IF_MAC(interface)[2] = hash_code_val%253;
+    IF_MAC(interface)[3] = hash_code_val%252;
+    IF_MAC(interface)[4] = hash_code_val%251;
+    IF_MAC(interface)[5] = hash_code_val%250;
+    printf("Mac is set to %d:%d:%d:%d:%d:%d\n",IF_MAC(interface)[0],
+                                               IF_MAC(interface)[1],
+                                               IF_MAC(interface)[2],
+                                               IF_MAC(interface)[3],
+                                               IF_MAC(interface)[4],
+                                               IF_MAC(interface)[5]);
 }
 
 
@@ -195,4 +210,14 @@ interface_t * node_get_matching_subnet_interface(node_t *node, char *ip_addr){
         }
     }
     return NULL;
+}
+
+char* pkt_buffer_shift_right(char* pkt,unsigned int pkt_size,unsigned int total_buffer_size){
+    char* temp = calloc(1,pkt_size);
+    memcpy(temp,pkt,pkt_size);
+    memset(pkt,0,total_buffer_size);
+
+    pkt = pkt + total_buffer_size - pkt_size;
+    memcpy(pkt,temp,pkt_size);
+    return pkt;
 }

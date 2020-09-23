@@ -12,7 +12,7 @@
 #include <netdb.h> /*for struct hostent*/
 
 
-static unsigned int udp_port = 41000;
+static unsigned int udp_port = 42820;
 
 static unsigned int get_next_udp_port_number(){
     return udp_port++;
@@ -158,10 +158,19 @@ int send_packet_out(char *pkt,unsigned int pkt_size, interface_t * outgoing_inte
 
 }
 
+extern void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned int pkt_size);
+
 int pkt_recieve(node_t *node,interface_t *interface,char* pkt,unsigned int pkt_size){
 
     //entry point of tcp-ip stack
-    printf("msg recvd :%s  on node %s interdace %s\n",pkt,node->node_name,interface->if_name);
+    //printf("msg recvd :%s  on node %s interdace %s\n",pkt,node->node_name,interface->if_name);
+
+    // Make room for  headers
+    pkt = pkt_buffer_shift_right(pkt,pkt_size,MAX_PACKET_BUFFER_SIZE - IF_NAME_SIZE);
+
+    //Further processing of the packet 
+    layer2_frame_recv(node,interface,pkt,pkt_size);
+    printf("%s returned\n",__FUNCTION__);
     return 0;
 }
 

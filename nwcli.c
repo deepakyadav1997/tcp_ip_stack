@@ -2,6 +2,8 @@
 #include "CommandParser/cmdtlv.h"
 #include "cmdcodes.h"
 #include "graph.h"
+#include "Layer2/layer2.h"
+
 #include<stdio.h>
 
 
@@ -26,6 +28,7 @@ static int arp_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
     int CMDCODE = -1;
     CMDCODE = EXTRACT_CMD_CODE(tlv_buf);
     char *node_name = NULL;
+    node_t *node;
     char *ip_address = NULL;
     tlv_struct_t * tlv;
     char *ip_addr = NULL;
@@ -41,9 +44,16 @@ static int arp_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
     switch (CMDCODE)
     {
     case RUN_NODE_RESOLVE_ARP:
-        printf("Node:%s   ip address:%s",node_name,ip_address);
+        //printf("Node:%s   ip address:%s",node_name,ip_address);
+        node = get_node_by_node_name(topo,node_name);
+        if(node)
+            send_arp_broadcast_request(node,NULL,ip_address);
         break;
-    
+    case DUMP_ARP_TABLE:
+        node = get_node_by_node_name(topo,node_name);
+        if(node)
+            dump_arp_table(node->node_nw_prop.arp_table);
+        break;
     default:
         break;
     }
@@ -91,6 +101,17 @@ void nw_init_cli(){
         }
 
 
+    }
+    {
+        static param_t node;
+        init_param(&node,CMD,"node",0,0,INVALID,0,"Run node");
+        libcli_register_param(show,&node);
+        {
+            static param_t node_name;
+            init_param(&node_name,LEAF,0,arp_handler,0,STRING,"node_name","Dump arp table\n");
+            libcli_register_param(&node,&node_name);
+            set_param_cmd_code(&node_name,DUMP_ARP_TABLE);
+        }
     }
     support_cmd_negation(config);
 }

@@ -8,7 +8,8 @@ OBJS=glthreads_lib/glthread.o \
 		  net.o			\
 		  utils.o		\
 		  nwcli.o		\
-		  communication.o
+		  communication.o\
+		  Layer2/layer2.o
 
 test.exe:testapp.o ${OBJS}	CommandParser/libcli.a
 	${CC} ${CFLAGS} testapp.o ${OBJS} -o test.exe ${LIBS}
@@ -30,6 +31,9 @@ nwcli.o:nwcli.c
 	${CC} ${CFLAGS} -c -I . nwcli.c -o nwcli.o
 communication.o:communication.c
 	${CC} ${CFLAGS}  -c -I . communication.c -o communication.o 
+Layer2/layer2.o:Layer2/layer2.c
+	${CC} ${CFLAGS}  -c  Layer2/layer2.c -o Layer2/layer2.o 
+
 
 # CommandParser/libcli.a:
 # 	(cd CommandParser;make)
@@ -38,6 +42,7 @@ clean:
 	rm *.o
 	rm glthreads_lib/glthread.o
 	rm *exe
+	rm Layer2/*.o
 clean_all:
 	clean
 	(cd CommandParser;make clean)
