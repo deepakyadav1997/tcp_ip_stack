@@ -14,6 +14,12 @@ typedef struct node_ node_t;
 #define NODE_LOOPBACK_ADDR(nodeptr) (nodeptr)->node_nw_prop.lb_addr.ip_addr
 #define IS_INTF_L3_MODE(intf_ptr)    (intf_ptr->intf_nw_prop.is_ipaddr_config == TRUE)
 
+typedef enum {
+    L2_MODE_UNKNOWN,
+    ACCESS,
+    TRUNK
+}intf_l2_mode_t;
+
 typedef struct ip_add_{
     char ip_addr[16];
 }ip_add_t;
@@ -43,9 +49,22 @@ static inline void init_node_nw_prop(node_nw_prop_t * node_nw_prop){
     init_arp_table(&(node_nw_prop->arp_table));
 }
 
+static inline char* intf_l2_mode_str(intf_l2_mode_t intf_l2_mode){
+    switch (intf_l2_mode)
+    {
+    case ACCESS:
+            return "access";
+    case TRUNK:
+            return "trunk";
+    default:
+        return "L2_MODE_UNKNOWN";
+    }
+}
+
 typedef struct intf_nw_prop_{
     //L2 properties
     mac_add_t mac;
+    intf_l2_mode_t intf_l2_mode;
 
     //L3 properties
     bool_t is_ipaddr_config;

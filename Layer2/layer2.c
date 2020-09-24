@@ -45,7 +45,6 @@ bool_t arp_table_entry_add(arp_table_t *arp_table, arp_entry_t *arp_entry){
     }
     init_glthread(&arp_entry->arp_glue);
     glthread_add_next(&arp_table->arp_entries,&arp_entry->arp_glue);
-    arp_entry->mac_addr.mac,arp_entry->oif_name);
     //printf("Ip adres in arp %s\n",arp_glue_to_arp_entry(arp_table->arp_entries.right)->oif_name);
     return TRUE;
 }
@@ -231,4 +230,33 @@ void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned i
         //promote to layer 3
         break;
     }
+}
+
+void node_set_intf_l2_mode(node_t * node,
+                           char* intf_name,
+                           char* intf_l2_mode_option){
+
+    interface_t * interface = get_node_if_by_name(node,intf_name);
+    if(!interface){
+        printf("%s : interface not found\n",intf_name);
+        return;
+    }
+    intf_l2_mode_t intf_l2_mode;
+    if(strncmp(intf_l2_mode_option, "access", strlen("access")) == 0){
+        intf_l2_mode = ACCESS;    
+    }
+    else if(strncmp(intf_l2_mode_option, "trunk", strlen("trunk")) ==0){
+        intf_l2_mode = TRUNK;
+    }
+    else{
+        assert(0);
+    }
+    if(IS_INTF_L3_MODE(interface)){
+        printf("Interface %s was configured in L3 mode.Overwriting previous configurations\n",intf_name);
+        interface->intf_nw_prop.is_ipaddr_config == FALSE;
+        memset(IF_IP(interface),0,16);
+        IF_IP(interface)[15] = '\0';
+    }
+    interface->intf_nw_prop.intf_l2_mode = intf_l2_mode;
+
 }

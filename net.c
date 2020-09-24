@@ -9,7 +9,7 @@
 bool_t node_set_loopback_address(node_t *node, char *ip_addr){
     assert(ip_addr);
     assert(node);
-    strncpy(node->node_nw_prop.lb_addr.ip_addr,ip_addr,16);
+    strncpy(NODE_LOOPBACK_ADDR(node),ip_addr,16);
     NODE_LOOPBACK_ADDR(node)[16] = '\0';
     node->node_nw_prop.is_lb_addr_config = TRUE;
 }
@@ -55,7 +55,7 @@ void interface_assign_mac_address(interface_t *interface){
     assert(node);
     unsigned int hash_code_val = rand();
     // hash_code_val = hash_code(node->node_name,NODE_NAME_SIZE);
-    //  printf("Hash code %u\n",hash_code_val);
+    // printf("Hash code %u\n",hash_code_val);
     // hash_code_val *= hash_code(interface->if_name,IF_NAME_SIZE);
     memset(IF_MAC(interface),0,sizeof(IF_MAC(interface)));
     //memcpy(IF_MAC(interface),(char*)&hash_code_val,sizeof(unsigned int));
@@ -95,13 +95,12 @@ void dump_intf_props(interface_t *interface){
          printf("\t IP Addr = %s/%u", "Nil", 0);
     }
 
-    // printf("\t MAC : %u:%u:%u:%u:%u:%u\n", 
-    //     IF_MAC(interface)[0], IF_MAC(interface)[1],
-    //     IF_MAC(interface)[2], IF_MAC(interface)[3],
-    //     IF_MAC(interface)[4], IF_MAC(interface)[5]);
-
-    //enhance mac address printing and formatting
-    printf("\t MAC: %d\n",IF_MAC(interface));
+    printf("\t MAC : %x:%x:%x:%x:%x:%x\n", 
+        IF_MAC(interface)[0], IF_MAC(interface)[1],
+        IF_MAC(interface)[2], IF_MAC(interface)[3],
+        IF_MAC(interface)[4], IF_MAC(interface)[5]);
+    if(!IS_INTF_L3_MODE(interface))
+        printf("\t L2 Mode : %s",intf_l2_mode_str(interface->intf_nw_prop.intf_l2_mode));
 }
 
 void dump_nw_graph(graph_t *graph){

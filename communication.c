@@ -12,7 +12,7 @@
 #include <netdb.h> /*for struct hostent*/
 
 
-static unsigned int udp_port = 42820;
+static unsigned int udp_port = 42860;
 
 static unsigned int get_next_udp_port_number(){
     return udp_port++;
@@ -21,6 +21,11 @@ static unsigned int get_next_udp_port_number(){
 void init_udp_socket(node_t *node){
     node->udp_port_number = get_next_udp_port_number();
     int udp_socket_fd = socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
+    int opt=TRUE;
+    if (setsockopt(udp_socket_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt))<0) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
     if(udp_socket_fd == -1){
         printf("Socket Creation Failed for node %s\n", node->node_name);
         return;   

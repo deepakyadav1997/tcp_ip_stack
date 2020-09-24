@@ -98,4 +98,8 @@ void send_arp_broadcast_request(node_t  *node,
                                 interface_t *oif,
                                 char * ip_addr);
 
+void node_set_intf_l2_mode(node_t * node,
+                            char* intf_name,
+                            char* intf_l2_mode);
+
 #endif
