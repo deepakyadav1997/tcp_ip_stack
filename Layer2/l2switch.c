@@ -1,26 +1,26 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include "l2switch.h"
 
-#include  "../net.h"
-#include  "../graph.h"
-#include  "layer2.h"
 
-typedef struct mac_table_entry_{
-    mac_add_t mac;
-    char oif_name[IF_NAME_SIZE];
-    glthread_t mac_entry_glue;
-
-}mac_table_entry_t;
-
-GLTHREAD_TO_STRUCT(mac_entry_glue_to_struct,mac_table_entry_t,mac_entry_glue,glthreadptr)
-
-typedef struct mac_table_{
-    glthread_t mac_entries;
-}mac_table_t;
 
 void init_mac_table(mac_table_t ** mac_table){
     *mac_table = calloc(1,sizeof(mac_table_t));
     init_glthread(&((*mac_table)->mac_entries));
+}
+
+mac_table_entry_t* mac_table_lookup(mac_table_t * mac_table,char* mac){
+
+    glthread_t *current = NULL;
+    ITERATE_GLTHREAD_BEGIN(&mac_table->mac_entries,current){
+
+        mac_table_entry_t* mac_table_entry = mac_entry_glue_to_struct(current);
+        if(strncmp(mac_table_entry->mac.mac,mac,sizeof(mac_add_t)) == 0){
+            return mac_table_entry;
+        }
+
+    }ITERATE_GLTHREAD_END
+    return NULL;
 }
 
 bool_t mac_table_entry_add(mac_table_t *mac_table,mac_table_entry_t* mac_table_entry){
@@ -39,19 +39,7 @@ bool_t mac_table_entry_add(mac_table_t *mac_table,mac_table_entry_t* mac_table_e
     return TRUE;
 }
 
-mac_table_entry_t* mac_table_lookup(mac_table_t * mac_table,char* mac){
 
-    glthread_t *current = NULL;
-    ITERATE_GLTHREAD_BEGIN(&mac_table->mac_entries,current){
-
-        mac_table_entry_t* mac_table_entry = mac_entry_glue_to_struct(current);
-        if(strncmp(mac_table_entry->mac.mac,mac,sizeof(mac_add_t)) == 0){
-            return mac_table_entry;
-        }
-
-    }ITERATE_GLTHREAD_END
-    return NULL;
-}
 
 void delete_mac_table_entry(mac_table_t * mac_table,char* mac){
 
@@ -70,7 +58,7 @@ void dump_mac_table(mac_table_t * mac_table){
 
     ITERATE_GLTHREAD_BEGIN(&mac_table->mac_entries, curr){
 
-        mac_table_entry = mac_entry_glue_to_mac_entry(curr);
+        mac_table_entry = mac_entry_glue_to_struct(curr);
         printf("\tMAC : %u:%u:%u:%u:%u:%u   | Intf : %s\n", 
             mac_table_entry->mac.mac[0], 
             mac_table_entry->mac.mac[1],
@@ -87,7 +75,7 @@ static void l2_switch_perform_mac_learning(node_t *node, char *src_mac, char *if
     
     mac_table_t * mac_table = node->node_nw_prop.mac_table;
     mac_table_entry_t *mac_table_entry = calloc(1,sizeof(mac_table_entry_t));
-    strncpy(mac_table_entry->mac.mac,src_mac,sizeof(mac_add_t);
+    strncpy(mac_table_entry->mac.mac,src_mac,sizeof(mac_add_t));
     strncpy(mac_table_entry->oif_name,if_name,IF_NAME_SIZE);
 
     bool_t entry_success =  mac_table_entry_add(mac_table,mac_table_entry);

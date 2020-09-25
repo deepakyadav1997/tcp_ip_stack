@@ -261,3 +261,112 @@ void node_set_intf_l2_mode(node_t * node,
 
 }
 
+
+ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
+                                     unsigned int total_pkt_size,
+                                     int vlan_id,
+                                     unsigned int *new_pkt_size){
+
+    vlan_8021q_hdr_t*  vlan_8021q_hdr = is_pkt_vlan_tagged(ethernet_hdr);
+    int payload_size = total_pkt_size - ETH_HDR_SIZE_EXCL_PAYLOAD;
+
+    //Packet is already tagged
+    //Just update the vlan id
+    if(vlan_8021q_hdr){
+        vlan_8021q_hdr->tci_vid =  (short)vlan_id;
+        SET_COMMON_ETH_FCS(ethernet_hdr,payload_size,0);
+        *new_pkt_size = total_pkt_size;
+        return ethernet_hdr;
+    }
+
+    // Packet is untagged
+
+    //Store mac addresses and type in temp memory
+    ethernet_hdr_t old_hdr;
+    memcpy((char*)&old_hdr,(char*)ethernet_hdr,ETH_HDR_SIZE_EXCL_PAYLOAD - sizeof(old_hdr.FCS));
+
+    //Expand the current header
+    vlan_ethernet_hdr_t * vlan_ethernet_hdr = (vlan_ethernet_hdr_t*)((char*)ethernet_hdr - sizeof(vlan_8021q_hdr_t));
+
+    //restore the values in the tagged ethernet header
+    memset((char*)vlan_ethernet_hdr,0,VLAN_ETH_HDR_SIZE_EXCL_PAYLOAD - sizeof(vlan_ethernet_hdr->FCS));
+    memcpy(vlan_ethernet_hdr->dst_mac.mac,old_hdr.dst_mac.mac,sizeof(mac_add_t));
+    memcpy(vlan_ethernet_hdr->src_mac.mac,old_hdr.src_mac.mac,sizeof(mac_add_t));
+
+    // Set 8021q header values
+    vlan_ethernet_hdr->vlan_8021q_hdr.tpid = VLAN_TAGGED_ETH_HDR;
+    vlan_ethernet_hdr->vlan_8021q_hdr.tci_vid = vlan_id;
+    vlan_ethernet_hdr->vlan_8021q_hdr.tci_pcp = 0;
+    vlan_ethernet_hdr->vlan_8021q_hdr.tci_dei = 0;
+
+    //Set type and FCS fields
+    vlan_ethernet_hdr->type = old_hdr.type;
+    SET_COMMON_ETH_FCS((ethernet_hdr_t*) vlan_ethernet_hdr,payload_size,0);
+
+    *new_pkt_size = total_pkt_size + sizeof(vlan_8021q_hdr_t);
+    return (ethernet_hdr_t*) vlan_ethernet_hdr;
+
+
+}
+
+ethernet_hdr_t * untag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
+                                        unsigned int total_pkt_size,
+                                        unsigned int *new_pkt_size){
+    
+    if(is_pkt_vlan_tagged(ethernet_hdr) == NULL){
+        *new_pkt_size = total_pkt_size;
+        return ethernet_hdr;
+    }
+
+    //Packet is tagged
+    // Store src and dst mac addresses in temp variable
+    ethernet_hdr_t ethernet_hdr_old;
+    memcpy((char*)&ethernet_hdr_old,(char*) ethernet_hdr,2*(sizeof(mac_add_t)));
+
+    // Shrink the ethernet header by sizeof 8021q header
+    ethernet_hdr = (ethernet_hdr_t*)((char*)ethernet_hdr + sizeof(vlan_8021q_hdr_t));
+
+    //Set the memory of the mac address to 0
+    memset(ethernet_hdr,0,2*sizeof(mac_add_t));
+
+    //Copy data of 2 mac addresses in the original ethernet header
+    memcpy((char*)ethernet_hdr,(char*)&ethernet_hdr_old,2*sizeof(mac_add_t));
+    *new_pkt_size = total_pkt_size - sizeof(vlan_8021q_hdr_t);
+    return ethernet_hdr;
+}
+
+
+
+// bool_t is_tagged_arp_broadcast_request_msg(ethernet_hdr_t *ethernet_hdr){
+
+//     if(is_pkt_vlan_tagged(ethernet_hdr) == NULL){
+//         return FALSE;
+//     }
+//     vlan_ethernet_hdr_t *vlan_ethernet_hdr = (vlan_ethernet_hdr_t*) ethernet_hdr;
+
+//     //packet is vlan tagged
+//     if(GET_802_1Q_VLAN_ID(vlan_ethernet_hdr) >= 10 && GET_802_1Q_VLAN_ID(vlan_ethernet_hdr) <= 20){
+
+//         //payload is arp message
+//         if(vlan_ethernet_hdr->type == ARP_MSG){
+//             arp_hdr_t  *arp_hdr = (arp_hdr_t*) vlan_ethernet_hdr->payload;
+            
+//             // It is arp broadcast message
+//             if(arp_hdr->op_code == ARP_BROAD_REQ){
+//                 return TRUE;
+//             }
+//             else{
+//                 return FALSE;
+//             }
+            
+//         }
+//         else{
+//             return FALSE;
+//         }
+        
+//     }
+//     else{
+//         return FALSE;
+//     }
+
+// }

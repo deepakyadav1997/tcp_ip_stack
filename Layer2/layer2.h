@@ -8,11 +8,44 @@
 
 #include<stdlib.h>
 #include<memory.h>
+  
+#define ETH_HDR_SIZE_EXCL_PAYLOAD                                                       \ 
+    (sizeof(ethernet_hdr_t) - sizeof(((ethernet_hdr_t*)0)->payload))
 
-#define ETH_HDR_SIZE_EXCL_PAYLOAD  (sizeof(ethernet_hdr_t) - sizeof(offsetof(ethernet_hdr_t,payload)))
-#define ETH_FCS(eth_hdr_ptr, payload_size)    *((unsigned int*)((char*)((ethernet_hdr_t*)(eth_hdr_ptr)->payload) + payload_size))
+#define ETH_FCS(eth_hdr_ptr, payload_size)                                              \    
+    *((unsigned int*)((char*)((ethernet_hdr_t*)(eth_hdr_ptr)->payload) + payload_size))
 
 
+#define VLAN_ETH_FCS(vlan_eth_hdr_ptr, payload_size)                                    \  
+    *((unsigned int*)((char*)((vlan_ethernet_hdr_t*)(vlan_eth_hdr_ptr)->payload) + payload_size))
+
+#define VLAN_ETH_HDR_SIZE_EXCL_PAYLOAD                                                  \
+    (sizeof(vlan_ethernet_hdr_t) - sizeof(((vlan_ethernet_hdr_t*)0)->payload))
+
+#define GET_COMMON_ETH_FCS(eth_hdr_ptr, payload_size)                                   \
+    is_pkt_vlan_tagged(eth_hdr_ptr) ? VLAN_ETH_FCS(eth_hdr_ptr,payload_size) : ETH_FCS(eth_hdr_ptr,payload_size)
+
+// Data structures for VLAN support
+#pragma pack (push,1)
+typedef struct vla_8021q_hdr_{
+
+    unsigned short tpid; // = 0x8100
+    short tci_pcp : 3; // Not used in this project 
+    short tci_dei : 1; // Not used in this project
+    short tci_vid : 12; // VLAN id
+
+}vlan_8021q_hdr_t;
+
+typedef struct vlan_ethernet_hdr_{
+    mac_add_t dst_mac;
+    mac_add_t src_mac;
+    vlan_8021q_hdr_t vlan_8021q_hdr;
+    unsigned short type;
+    char payload[248];  /*Max allowed 1500*/
+    unsigned int FCS;
+} vlan_ethernet_hdr_t;
+
+#pragma pack(pop)
 
 #pragma pack (push,1)
 typedef struct arp_hdr_{
@@ -29,7 +62,7 @@ typedef struct arp_hdr_{
 } arp_hdr_t;
 
 
-#pragma pack (push,1)
+
 typedef struct ethernet_hdr_{
     mac_add_t dst_mac;
     mac_add_t src_mac;
@@ -39,11 +72,51 @@ typedef struct ethernet_hdr_{
 } ethernet_hdr_t;
 #pragma pack(pop)
 
+static inline vlan_8021q_hdr_t * is_pkt_vlan_tagged(ethernet_hdr_t *ethernet_hdr){
+    if(ethernet_hdr->type == VLAN_TAGGED_ETH_HDR){
+        return (vlan_8021q_hdr_t*)&(ethernet_hdr->type);
+        // In eth_hdr type will be where 8021 hdr is in vlan_eth_hdr
+    }
+    return NULL;
+}
+
+static inline char * GET_ETHERNET_HDR_PAYLOAD(ethernet_hdr_t *ethernet_hdr){
+    if(is_pkt_vlan_tagged(ethernet_hdr) == NULL){
+        return (char*)ethernet_hdr->payload;
+    }
+    else{
+        vlan_ethernet_hdr_t *vlan_ethernet_hdr =  (vlan_ethernet_hdr_t*)ethernet_hdr;
+        return vlan_ethernet_hdr->payload;
+    }
+}
+
+static inline unsigned int GET_802_1Q_VLAN_ID(vlan_8021q_hdr_t *vlan_8021q_hdr){
+    return (unsigned int)vlan_8021q_hdr->tci_vid;
+}
+
+static inline void SET_COMMON_ETH_FCS(ethernet_hdr_t *ethernet_hdr,
+                   unsigned int payload_size,
+                   unsigned int new_fcs){
+
+    if(is_pkt_vlan_tagged(ethernet_hdr)){
+        VLAN_ETH_FCS(ethernet_hdr,payload_size) = new_fcs;
+    }
+    else{
+        ETH_FCS(ethernet_hdr,payload_size) = new_fcs;
+    }
+}
+static inline unsigned int GET_ETH_HDR_SIZE_EXCL_PAYLOAD(ethernet_hdr_t *ethernet_hdr){
+    if(is_pkt_vlan_tagged(ethernet_hdr)){
+        return VLAN_ETH_HDR_SIZE_EXCL_PAYLOAD;
+    }
+    return ETH_HDR_SIZE_EXCL_PAYLOAD;
+}
+
 static inline ethernet_hdr_t * ALLOC_ETH_HDR_WITH_PAYLOAD(char *pkt, unsigned int pkt_size){
     char* temp = (char*)calloc(1,pkt_size);
     memcpy(temp,pkt,pkt_size);
     ethernet_hdr_t * header = (ethernet_hdr_t*)(pkt - ETH_HDR_SIZE_EXCL_PAYLOAD);
-    memset(header,0,sizeof(ETH_HDR_SIZE_EXCL_PAYLOAD));
+    memset((char*)header,0,ETH_HDR_SIZE_EXCL_PAYLOAD);
     memcpy(header->payload,temp,pkt_size);
     ETH_FCS(header,pkt_size) = 0;
     free(temp);
@@ -101,5 +174,14 @@ void send_arp_broadcast_request(node_t  *node,
 void node_set_intf_l2_mode(node_t * node,
                             char* intf_name,
                             char* intf_l2_mode);
+
+ethernet_hdr_t * untag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
+                                        unsigned int total_pkt_size,
+                                        unsigned int *new_pkt_size);
+
+ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
+                                     unsigned int total_pkt_size,
+                                     int vlan_id,
+                                     unsigned int *new_pkt_size);
 
 #endif

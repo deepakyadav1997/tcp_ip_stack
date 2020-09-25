@@ -9,7 +9,9 @@ OBJS=glthreads_lib/glthread.o \
 		  utils.o		\
 		  nwcli.o		\
 		  communication.o\
-		  Layer2/layer2.o
+		  Layer2/layer2.o \
+		  pkt_dump.o	  \
+		  Layer2/l2switch.o
 
 test.exe:testapp.o ${OBJS}	CommandParser/libcli.a
 	${CC} ${CFLAGS} testapp.o ${OBJS} -o test.exe ${LIBS}
@@ -33,6 +35,10 @@ communication.o:communication.c
 	${CC} ${CFLAGS}  -c -I . communication.c -o communication.o 
 Layer2/layer2.o:Layer2/layer2.c
 	${CC} ${CFLAGS}  -c  Layer2/layer2.c -o Layer2/layer2.o 
+pkt_dump.o:pkt_dump.c
+	${CC} ${CFLAGS} -c -I . pkt_dump.c -o pkt_dump.o
+Layer2/l2switch.o:Layer2/l2switch.c
+	${CC} ${CFLAGS} -c -I . Layer2/l2switch.c -o Layer2/l2switch.o
 
 
 # CommandParser/libcli.a:
