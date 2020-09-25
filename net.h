@@ -30,11 +30,12 @@ typedef struct mac_add_{
 
 //Forward declaration
 typedef struct arp_table_ arp_table_t;
+typedef struct mac_table_ mac_table_t;
 
 typedef struct node_nw_prop_{
     // Layer 2 properties
     arp_table_t * arp_table;
-
+    mac_table_t * mac_table;
 
     //Layer 3 properties
      bool_t is_lb_addr_config ;

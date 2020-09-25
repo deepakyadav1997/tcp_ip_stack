@@ -260,3 +260,4 @@ void node_set_intf_l2_mode(node_t * node,
     interface->intf_nw_prop.intf_l2_mode = intf_l2_mode;
 
 }
+

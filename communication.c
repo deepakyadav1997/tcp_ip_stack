@@ -192,3 +192,22 @@ int send_pkt_flood(node_t *node, interface_t *exempted_intf,char *pkt, unsigned 
     }
     return 0;
 }
+int send_pkt_flood_l2_intf_only(node_t *node,
+                                interface_t *exempted_intf,        /*Interface on which the frame was recvd by L2 switch*/
+                                char *pkt, 
+                                unsigned int pkt_size){
+
+    for(int i = 0;i<MAX_INTERFACES_PER_NODE;i++){
+        if(node->intf[i] == NULL){
+            return 0;
+        }
+        if(node->intf[i] == exempted_intf){
+            continue;
+        }
+        if(IS_INTF_L3_MODE(node->intf[i])){
+            continue;
+        }
+        send_packet_out(pkt,pkt_size,node->intf[i]);
+    }
+    return 0;
+}

@@ -9,6 +9,8 @@
 
 extern graph_t *topo;
 
+extern void dump_mac_table(mac_table_t * mac_table);
+
 static int show_nw_topology_handler(param_t *param,ser_buff_t *tlv_buffer,op_mode enable_or_disable){
     int CMDCODE = -1;
     CMDCODE = EXTRACT_CMD_CODE(tlv_buffer);
@@ -53,6 +55,11 @@ static int arp_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
         node = get_node_by_node_name(topo,node_name);
         if(node)
             dump_arp_table(node->node_nw_prop.arp_table);
+        break;
+    case CMDCODE_SHOW_MAC_TABLE:
+        node = get_node_by_node_name(topo,node_name);
+        if(node)
+            dump_mac_table(node->node_nw_prop.mac_table);
         break;
     default:
         break;
@@ -106,11 +113,18 @@ void nw_init_cli(){
         static param_t node;
         init_param(&node,CMD,"node",0,0,INVALID,0,"Run node");
         libcli_register_param(show,&node);
-        {
+        {   
+            // show node node_name -----------displays arp table
             static param_t node_name;
             init_param(&node_name,LEAF,0,arp_handler,0,STRING,"node_name","Dump arp table\n");
             libcli_register_param(&node,&node_name);
             set_param_cmd_code(&node_name,DUMP_ARP_TABLE);
+            {
+                static param_t mac;
+                init_param(&mac,CMD,"mac",arp_handler,0,INVALID,0,"Display mac table");
+                libcli_register_param(&node_name,&mac);
+                set_param_cmd_code(&mac,CMDCODE_SHOW_MAC_TABLE);
+            }
         }
     }
     support_cmd_negation(config);
