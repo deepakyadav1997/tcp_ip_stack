@@ -1,6 +1,8 @@
 #ifndef __NET__
 #define __NET__
 #include "utils.h"
+#include "tcpconst.h"
+
 #include<memory.h>
 
 //declarations so that we can use the pointers of these type
@@ -66,6 +68,7 @@ typedef struct intf_nw_prop_{
     //L2 properties
     mac_add_t mac;
     intf_l2_mode_t intf_l2_mode;
+    unsigned int vlans[MAX_VLAN_MEMBERSHIP];
 
     //L3 properties
     bool_t is_ipaddr_config;

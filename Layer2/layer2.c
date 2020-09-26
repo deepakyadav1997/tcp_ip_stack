@@ -243,9 +243,21 @@ void node_set_intf_l2_mode(node_t * node,
     }
     intf_l2_mode_t intf_l2_mode;
     if(strncmp(intf_l2_mode_option, "access", strlen("access")) == 0){
+        if(interface->intf_nw_prop.intf_l2_mode == TRUNK){
+            printf("Overwriting trunk mode on %s interface with access mode and flushing previous vlan memberships\n",interface->if_name);
+            for(int i = 0;i < MAX_VLAN_MEMBERSHIP;i++){
+                interface->intf_nw_prop.vlans[i] = 0;
+            }
+        }
         intf_l2_mode = ACCESS;    
     }
     else if(strncmp(intf_l2_mode_option, "trunk", strlen("trunk")) ==0){
+        if(interface->intf_nw_prop.intf_l2_mode == ACCESS){
+            printf("Reconfiguring interface %s to trunk mode and flushing the previous vlan membership\n",interface->if_name);
+            for(int i = 0;i < MAX_VLAN_MEMBERSHIP;i++){
+                interface->intf_nw_prop.vlans[i] = 0;
+            }
+        }
         intf_l2_mode = TRUNK;
     }
     else{
@@ -258,6 +270,54 @@ void node_set_intf_l2_mode(node_t * node,
         IF_IP(interface)[15] = '\0';
     }
     interface->intf_nw_prop.intf_l2_mode = intf_l2_mode;
+
+}
+
+void node_set_intf_vlan_membership(node_t *node,
+                                    char *intf_name,
+                                    unsigned int vlan_id){
+
+    interface_t *interface = get_node_if_by_name(node,intf_name);
+    if(interface == NULL){
+        printf("No such interface %s on node %s\n",intf_name,node->node_name);
+        return;
+    }
+
+    //Interface is in L3 mode
+    if(IS_INTF_L3_MODE(interface)){
+        printf("Error! interface is in L3 mode. Cannot set vlan membership\n");
+    }
+
+    //L2 mode is not enabled
+    if(interface->intf_nw_prop.intf_l2_mode != ACCESS && interface->intf_nw_prop.intf_l2_mode != TRUNK){
+        printf("Error! L2 mode is not enabled on the interface %s\n",intf_name);
+    }
+
+    //Interface is in access mode
+    if(interface->intf_nw_prop.intf_l2_mode == ACCESS){
+        //Set first vlan id to vlan id
+        interface->intf_nw_prop.vlans[0] = vlan_id;
+        for(int i = 1;i<MAX_VLAN_MEMBERSHIP;i++){
+            if(interface->intf_nw_prop.vlans[i] != 0){
+                printf("More than one Vlans found on interface %s in access mode.Overwriting with 0 \n",intf_name);
+                interface->intf_nw_prop.vlans[i] = 0;
+            }
+        }
+    }
+
+    //Interface is in trunk mode
+    if(interface->intf_nw_prop.intf_l2_mode == TRUNK){
+        for(int i = 0;i < MAX_VLAN_MEMBERSHIP;i++){
+            //Found an empty slot
+            if(interface->intf_nw_prop.vlans[i] == 0){
+                interface->intf_nw_prop.vlans[i] = vlan_id;
+                return;
+            }
+        }
+
+        // All vlan slots are configured
+        printf("Max possible number of vlans already configured on %s\n",intf_name);
+    }
 
 }
 

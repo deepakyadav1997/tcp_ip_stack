@@ -25,7 +25,7 @@ mac_table_entry_t* mac_table_lookup(mac_table_t * mac_table,char* mac){
 
 bool_t mac_table_entry_add(mac_table_t *mac_table,mac_table_entry_t* mac_table_entry){
 
-    mac_table_entry_t * mac_entry_old = mac_table_lookup(mac_table,mac_table_entry);
+    mac_table_entry_t * mac_entry_old = mac_table_lookup(mac_table,mac_table_entry->mac.mac);
     if(mac_entry_old && memcmp(mac_entry_old,mac_table_entry,sizeof(mac_table_entry_t)) == 0){
         return FALSE;
         // Responsibility of the caller to free the memory of duplicate arp record

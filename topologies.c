@@ -149,6 +149,21 @@ build_simple_l2_switch_topo(){
     node_set_intf_l2_mode(L2SW, "eth0/2", "access");
     node_set_intf_l2_mode(L2SW, "eth0/3", "access");
     node_set_intf_l2_mode(L2SW, "eth0/4", "access");
+    
+    node_set_intf_vlan_membership(L2SW,"eth0/1",10);
+    dump_intf_props(get_node_if_by_name(L2SW,"eth0/1"));
+
+    node_set_intf_l2_mode(L2SW,"eth0/1","trunk");
+
+    node_set_intf_vlan_membership(L2SW,"eth0/1",10);
+    node_set_intf_vlan_membership(L2SW,"eth0/1",20);
+
+    dump_intf_props(get_node_if_by_name(L2SW,"eth0/1"));
+
+    node_set_intf_l2_mode(L2SW,"eth0/1","access");
+    node_set_intf_vlan_membership(L2SW,"eth0/1",20);
+
+   dump_intf_props(get_node_if_by_name(L2SW,"eth0/1"));
 
     network_start_pkt_receiver_thread(topo);
 

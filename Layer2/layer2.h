@@ -9,14 +9,14 @@
 #include<stdlib.h>
 #include<memory.h>
   
-#define ETH_HDR_SIZE_EXCL_PAYLOAD                                                       \ 
+#define ETH_HDR_SIZE_EXCL_PAYLOAD                                                       \
     (sizeof(ethernet_hdr_t) - sizeof(((ethernet_hdr_t*)0)->payload))
 
-#define ETH_FCS(eth_hdr_ptr, payload_size)                                              \    
+#define ETH_FCS(eth_hdr_ptr, payload_size)                                              \
     *((unsigned int*)((char*)((ethernet_hdr_t*)(eth_hdr_ptr)->payload) + payload_size))
 
 
-#define VLAN_ETH_FCS(vlan_eth_hdr_ptr, payload_size)                                    \  
+#define VLAN_ETH_FCS(vlan_eth_hdr_ptr, payload_size)                                    \
     *((unsigned int*)((char*)((vlan_ethernet_hdr_t*)(vlan_eth_hdr_ptr)->payload) + payload_size))
 
 #define VLAN_ETH_HDR_SIZE_EXCL_PAYLOAD                                                  \
@@ -175,6 +175,10 @@ void node_set_intf_l2_mode(node_t * node,
                             char* intf_name,
                             char* intf_l2_mode);
 
+void node_set_intf_vlan_membership(node_t *node,
+                                    char *intf_name,
+                                    unsigned int vlan_id);
+
 ethernet_hdr_t * untag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
                                         unsigned int total_pkt_size,
                                         unsigned int *new_pkt_size);
@@ -183,5 +187,7 @@ ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
                                      unsigned int total_pkt_size,
                                      int vlan_id,
                                      unsigned int *new_pkt_size);
+
+
 
 #endif

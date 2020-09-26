@@ -7,4 +7,6 @@
 #define VLAN_TAGGED_ETH_HDR     0x8100
 #define BROADCAST_MAC           0xFFFFFFFFFFFF
 
+#define MAX_VLAN_MEMBERSHIP     10
+
 #endif

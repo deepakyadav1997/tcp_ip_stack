@@ -14,7 +14,7 @@ graph_t *topo = NULL;
 
 int main(int argc, char **argv){
     //nw_init_cli();
-    //topo = build_simple_l2_switch_topo();
+    topo = build_simple_l2_switch_topo();
     // dump_graph(topo);
     // dump_nw_graph(topo);
     // printf("Int value is %u\n",convert_ip_from_str_to_int("192.1.2.2"));
@@ -36,12 +36,12 @@ int main(int argc, char **argv){
     ethernet_hdr_t ethernet_hdr;
 
 
-    int  new_packet_size = NULL;
-    ethernet_hdr_t  *tagged_pkt =  tag_pkt_with_vlan_id(&ethernet_hdr,sizeof(ethernet_hdr),101,&new_packet_size);
-    pkt_dump(tagged_pkt,&new_packet_size);
-    int  new_size_untagged = NULL;
-    ethernet_hdr_t * untagged_pkt = untag_pkt_with_vlan_id(tagged_pkt,&new_packet_size,&new_size_untagged);
-    pkt_dump(untagged_pkt,&new_size_untagged);
+    // int  new_packet_size = NULL;
+    // ethernet_hdr_t  *tagged_pkt =  tag_pkt_with_vlan_id(&ethernet_hdr,sizeof(ethernet_hdr),101,&new_packet_size);
+    // pkt_dump(tagged_pkt,&new_packet_size);
+    // int  new_size_untagged = NULL;
+    // ethernet_hdr_t * untagged_pkt = untag_pkt_with_vlan_id(tagged_pkt,&new_packet_size,&new_size_untagged);
+    // pkt_dump(untagged_pkt,&new_size_untagged);
 
 
     return 0;

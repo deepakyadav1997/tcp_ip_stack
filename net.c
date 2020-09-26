@@ -100,7 +100,13 @@ void dump_intf_props(interface_t *interface){
         IF_MAC(interface)[2], IF_MAC(interface)[3],
         IF_MAC(interface)[4], IF_MAC(interface)[5]);
     if(!IS_INTF_L3_MODE(interface))
-        printf("\t L2 Mode : %s",intf_l2_mode_str(interface->intf_nw_prop.intf_l2_mode));
+        printf("\t L2 Mode : %s\n",intf_l2_mode_str(interface->intf_nw_prop.intf_l2_mode));
+    printf("VLANs configured on the interface ----\n");
+    for(int i = 0;i < MAX_VLAN_MEMBERSHIP;i++){
+        if(interface->intf_nw_prop.vlans[i] != 0){
+            printf("Vlan id: %d\n",interface->intf_nw_prop.vlans[i]);
+        }
+    }
 }
 
 void dump_nw_graph(graph_t *graph){
