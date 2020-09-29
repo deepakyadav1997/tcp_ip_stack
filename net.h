@@ -45,11 +45,13 @@ typedef struct node_nw_prop_{
 }node_nw_prop_t;
 
 extern void init_arp_table(arp_table_t ** arp_table);
+extern void init_mac_table(mac_table_t ** mac_table);
 
 static inline void init_node_nw_prop(node_nw_prop_t * node_nw_prop){
     node_nw_prop->is_lb_addr_config = FALSE;
     memset(node_nw_prop->lb_addr.ip_addr,0,16);
     init_arp_table(&(node_nw_prop->arp_table));
+    init_mac_table(&(node_nw_prop->mac_table));
 }
 
 static inline char* intf_l2_mode_str(intf_l2_mode_t intf_l2_mode){
@@ -106,5 +108,10 @@ interface_t * node_get_matching_subnet_interface(node_t *node, char *ip_addr);
 
 //total_buffer_size =  MAX_PACKET_BUFFER_SIZE - IF_NAME_SIZE
 char* pkt_buffer_shift_right(char* pkt,unsigned int pkt_size,unsigned int total_buffer_size);
+
+
+unsigned int get_access_intf_operating_vlan_id(interface_t *interface);
+
+bool_t is_trunk_interface_vlan_enabled(interface_t *interface,unsigned int vlan_id);
 
 #endif

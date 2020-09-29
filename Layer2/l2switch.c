@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include "l2switch.h"
+#include "layer2.h"
 
 
 
@@ -87,6 +88,86 @@ static void l2_switch_perform_mac_learning(node_t *node, char *src_mac, char *if
 
 }
 
+static bool_t l2_switch_send_pkt_out(char *pkt, unsigned int pkt_size,
+                                    interface_t *oif){
+
+    assert(!IS_INTF_L3_MODE(oif)); 
+    vlan_8021q_hdr_t *vlan_8021q_hdr = is_pkt_vlan_tagged((ethernet_hdr_t*) pkt);
+    intf_l2_mode_t oif_mode = oif->intf_nw_prop.intf_l2_mode;
+
+    ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t *)pkt;
+    switch(oif_mode){
+        case ACCESS:{
+            if(vlan_8021q_hdr == NULL){ 
+                //case 1
+                if(get_access_intf_operating_vlan_id(oif) == -1){
+                    send_packet_out(pkt,pkt_size,oif);
+                    return TRUE;
+                }
+                else{ //case 2
+                    return FALSE;
+                }
+                
+            }
+            else{ // pkt is vlan tagged
+                if(get_access_intf_operating_vlan_id(oif) == -1){ //case 4
+                    return FALSE;
+                }
+                if(get_access_intf_operating_vlan_id(oif) == GET_802_1Q_VLAN_ID(vlan_8021q_hdr)){ //case 3
+                    unsigned int new_pkt_size = 0;
+                    char *pkt = (char*) untag_pkt_with_vlan_id(ethernet_hdr,pkt_size,&new_pkt_size);
+                    send_packet_out(pkt,new_pkt_size,oif);
+                    return TRUE;
+                }
+                else{
+                    return FALSE;
+                }
+            }
+            break;
+        }
+        case TRUNK:{ //case 5
+            int pkt_vlan_id = 0;
+            if(vlan_8021q_hdr != NULL){
+                pkt_vlan_id = GET_802_1Q_VLAN_ID(vlan_8021q_hdr);
+                if(pkt_vlan_id > 0 && is_trunk_interface_vlan_enabled(oif,pkt_vlan_id) == TRUE){
+                    send_packet_out(pkt,pkt_size,oif);
+                    return TRUE;
+                }
+                else{
+                    return FALSE;
+                }
+                
+            }
+            break;
+        }
+        default:return FALSE;
+    }
+
+}
+
+static bool_t l2_switch_flood_pkt_out(node_t *node, interface_t *exempted_intf,
+                                      char *pkt, unsigned int pkt_size){
+
+    interface_t *oif = NULL;
+    char* pkt_copy = NULL;
+    char* temp_pkt = calloc(1,MAX_PACKET_BUFFER_SIZE);
+    //temp memory for packet with space on the right 
+    pkt_copy = temp_pkt + MAX_PACKET_BUFFER_SIZE - pkt_size;
+    for(int i = 0;i < MAX_INTERFACES_PER_NODE; i++){
+        oif = node->intf[i];
+        if(oif == NULL){
+            break;
+        }
+        if(oif == exempted_intf || IS_INTF_L3_MODE(oif)){
+            continue;
+        }
+        memcpy(pkt_copy,pkt,pkt_size);
+        l2_switch_send_pkt_out(pkt_copy,pkt_size,oif);
+        
+    }
+    free(temp_pkt);
+}
+
 static void  l2_switch_forward_frame(node_t *node,interface_t * recv_interface,
                                      char* pkt,unsigned int pkt_size){
 
@@ -94,7 +175,7 @@ static void  l2_switch_forward_frame(node_t *node,interface_t * recv_interface,
 
     //Destination address is broadcast
     if(IS_MAC_BROADCAST_ADDR(ethernet_hdr->dst_mac.mac)){
-        send_pkt_flood_l2_intf_only(node,recv_interface,pkt,pkt_size);
+        l2_switch_flood_pkt_out(node,recv_interface,pkt,pkt_size);
         return;
     }
     
@@ -102,7 +183,7 @@ static void  l2_switch_forward_frame(node_t *node,interface_t * recv_interface,
     mac_table_entry_t * mac_table_entry = mac_table_lookup(node->node_nw_prop.mac_table,ethernet_hdr->dst_mac.mac);
 
     if(!mac_table_entry){
-        send_pkt_flood_l2_intf_only(node,recv_interface,pkt,pkt_size);
+        l2_switch_flood_pkt_out(node,recv_interface,pkt,pkt_size);
         return;
     }
     char* oif_name = mac_table_entry->oif_name;
@@ -110,7 +191,7 @@ static void  l2_switch_forward_frame(node_t *node,interface_t * recv_interface,
     if(!oif){
         return;
     }
-    send_packet_out(pkt,pkt_size,oif);
+    l2_switch_send_pkt_out(pkt,pkt_size,oif);
 
 }
 

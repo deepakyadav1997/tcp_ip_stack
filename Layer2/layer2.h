@@ -123,14 +123,90 @@ static inline ethernet_hdr_t * ALLOC_ETH_HDR_WITH_PAYLOAD(char *pkt, unsigned in
     return header;
 }
 
-static inline bool_t l2_frame_recv_qualify_on_interface(interface_t *interface,ethernet_hdr_t* header){
-    if(!IS_INTF_L3_MODE(interface))
+static inline bool_t l2_frame_recv_qualify_on_interface(interface_t *interface,
+                                                        ethernet_hdr_t* header,
+                                                        unsigned int* output_vlan_id){
+
+    *output_vlan_id = 0;
+    vlan_8021q_hdr_t *vlan_8021q_hdr = is_pkt_vlan_tagged(header);
+        
+    // CAse 10: Interface is niether in L2 mode or l3 mode
+    if(!IS_INTF_L3_MODE(interface) && interface->intf_nw_prop.intf_l2_mode != TRUNK && interface->intf_nw_prop.intf_l2_mode != ACCESS)
         return FALSE;
     
-    if(memcmp(IF_MAC(interface),header->dst_mac.mac,sizeof(mac_add_t)) == 0){
+    //Interface is in access mode but vlan is not configured
+    // Only accept untagged packets
+    if(interface->intf_nw_prop.intf_l2_mode == ACCESS && get_access_intf_operating_vlan_id(interface) == -1){
+
+        if(!vlan_8021q_hdr){    //Case 3
+            return TRUE;
+        }
+        else{                   //Case 4
+            return FALSE;
+        }
+    }
+
+    /* Interface is in access mode and vlan is  configured 
+       If the packet is untagged, tag it with current vlan configured on the interface
+       If the packet is tagged, only accept it if it is tagged with the same vlan id
+    */
+    int pkt_vlan_id = 0,
+        interface_vlan_id = 0;
+
+    if(interface->intf_nw_prop.intf_l2_mode == ACCESS){
+
+        interface_vlan_id = get_access_intf_operating_vlan_id(interface);
+        //Case 6: packet is untagged
+        if(!vlan_8021q_hdr && interface_vlan_id != -1){
+            *output_vlan_id = interface_vlan_id;
+            return TRUE;
+        }
+
+        if(!vlan_8021q_hdr && interface_vlan_id == -1){
+            //case 3:
+            return TRUE;
+        }
+        pkt_vlan_id = GET_802_1Q_VLAN_ID(vlan_8021q_hdr);
+        //Case 5:
+        if(pkt_vlan_id == interface_vlan_id){
+            return TRUE;
+        }
+        else{
+            return FALSE;
+        }
+        
+    }
+
+    /*
+    If interface is in trunk mode, discard all untagged packets
+    Only accept tagged packets that are enabled on the interface
+    */
+   if(interface->intf_nw_prop.intf_l2_mode == TRUNK){
+       if(!vlan_8021q_hdr){
+           return FALSE; //case 7 and 8
+       }
+       else{
+           //Case 9
+           pkt_vlan_id = GET_802_1Q_VLAN_ID(vlan_8021q_hdr);
+           if(is_trunk_interface_vlan_enabled(interface,pkt_vlan_id)){
+               return TRUE;
+           }
+           else{
+               return FALSE;
+           }
+       }
+   }
+   //Case 2: If recieved a tagged frame in l3 mode, drop it
+   if(IS_INTF_L3_MODE(interface) && vlan_8021q_hdr){
+       return FALSE;
+   }
+
+    //Case 1 Accept all frames with dst mac is same as that of the recieving interface's mac
+    if(IS_INTF_L3_MODE(interface) && memcmp(IF_MAC(interface),header->dst_mac.mac,sizeof(mac_add_t)) == 0){
         return TRUE;
     }
-    if(IS_MAC_BROADCAST_ADDR(header->dst_mac.mac)){
+    //Case 1: If in L3 mode, accept all broadcast frames
+    if(IS_INTF_L3_MODE(interface) && IS_MAC_BROADCAST_ADDR(header->dst_mac.mac)){
         return TRUE;
     }
     return TRUE;

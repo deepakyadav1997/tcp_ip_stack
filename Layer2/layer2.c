@@ -4,6 +4,7 @@
 
 
 #include "layer2.h"
+#include "l2switch.h"
 
 
 void init_arp_table(arp_table_t ** arp_table){
@@ -130,12 +131,13 @@ void send_arp_broadcast_request(node_t  *node,
 
         inet_pton(AF_INET,ip_addr,&arp_hdr->dst_ip);
         arp_hdr->dst_ip = htonl(arp_hdr->dst_ip);
-
+        printf("Dst ip %d\n",arp_hdr->dst_ip);
         //Temporarily set to 0. Dont access FCS directly in this manner
         ETH_FCS(ethernet_hdr,sizeof(arp_hdr_t)) = 0;
 
         //Step 3:Dispath the arp request
         send_packet_out((char*)ethernet_hdr,payload_size + ETH_HDR_SIZE_EXCL_PAYLOAD,oif);
+        //printf("%d ip from header\n",((arp_hdr_t*)ethernet_hdr->payload)->dst_ip);
         printf("freeing ethernet header  source mac %d\n",arp_hdr->src_mac.mac);
         free(ethernet_hdr);
     }                
@@ -190,7 +192,6 @@ static void process_arp_broadcast_request(node_t* node,interface_t* iif,ethernet
     unsigned int dst_ip_addr = htonl(arp_hdr->dst_ip);
     inet_ntop(AF_INET,&dst_ip_addr,ip_addr,16);
     ip_addr[15] = '\0';
-
     if(strncmp(IF_IP(iif),ip_addr,16) != 0){
         printf("%s : ARP message dropped. Destination ip adress  %s does not matches the interface ip :%s\n",
                 node->node_name,ip_addr,
@@ -202,33 +203,54 @@ static void process_arp_broadcast_request(node_t* node,interface_t* iif,ethernet
 void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned int pkt_size){
     //Entry poin in tcp/ip stack from the bottom
     ethernet_hdr_t * ethernet_hdr = (ethernet_hdr_t*) pkt;
-    if(l2_frame_recv_qualify_on_interface(interface,ethernet_hdr) == FALSE){
+    
+    int output_vlan_id = 0;
+    if(l2_frame_recv_qualify_on_interface(interface,ethernet_hdr,&output_vlan_id) == FALSE){
         printf("L2 frame rejected\n");
         return;
     }
+
     printf("L2 frame accepted \n");
-    switch (ethernet_hdr->type)
-    {
-    case ARP_MSG:
+    if(IS_INTF_L3_MODE(interface)){
+        switch (ethernet_hdr->type)
         {
-            arp_hdr_t * arp_hdr = (arp_hdr_t*) ethernet_hdr->payload;
-            switch (arp_hdr->op_code)
+        case ARP_MSG:
             {
-            case ARP_REPLY:
-                process_arp_reply_message(node,interface,ethernet_hdr);
-                break;
-            case ARP_BROAD_REQ:
-                process_arp_broadcast_request(node,interface,ethernet_hdr);
-                break;
-            default:
-                break;
+                arp_hdr_t * arp_hdr = (arp_hdr_t*) ethernet_hdr->payload;
+                switch (arp_hdr->op_code)
+                {
+                case ARP_REPLY:
+                    process_arp_reply_message(node,interface,ethernet_hdr);
+                    break;
+                case ARP_BROAD_REQ:
+                    process_arp_broadcast_request(node,interface,ethernet_hdr);
+                    break;
+                default:
+                    break;
+                }
             }
+            break;
+        
+        default:
+            //promote to layer 3
+            break;
         }
-        break;
-    
-    default:
-        //promote to layer 3
-        break;
+    }
+    else if(interface->intf_nw_prop.intf_l2_mode == ACCESS || interface->intf_nw_prop.intf_l2_mode == TRUNK){
+            unsigned int new_pkt_size = 0;
+            //Frame needs to be tagged with output_vlan_id?
+            ethernet_hdr = (ethernet_hdr_t*) pkt;
+            //printf("%d ip from header %s  %s\n",((arp_hdr_t*)ethernet_hdr->payload)->dst_ip,node->node_name,__FUNCTION__);
+            if(output_vlan_id != 0){
+                pkt = (char*) tag_pkt_with_vlan_id((ethernet_hdr_t*)pkt,pkt_size,output_vlan_id,&new_pkt_size);
+                assert(new_pkt_size != pkt_size);
+            }
+
+            new_pkt_size = output_vlan_id == 0 ? pkt_size:new_pkt_size;
+            l2_switch_recv_frame(interface,pkt,new_pkt_size);
+    }
+    else{
+        return;
     }
 }
 
@@ -329,12 +351,12 @@ ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
 
     vlan_8021q_hdr_t*  vlan_8021q_hdr = is_pkt_vlan_tagged(ethernet_hdr);
     int payload_size = total_pkt_size - ETH_HDR_SIZE_EXCL_PAYLOAD;
-
+    printf("%s ip address %d %d\n",__FUNCTION__,((arp_hdr_t*)(ethernet_hdr->payload))->dst_ip,((arp_hdr_t*)(ethernet_hdr->payload))->src_ip);
     //Packet is already tagged
     //Just update the vlan id
     if(vlan_8021q_hdr){
         vlan_8021q_hdr->tci_vid =  (short)vlan_id;
-        SET_COMMON_ETH_FCS(ethernet_hdr,payload_size,0);
+        //SET_COMMON_ETH_FCS(ethernet_hdr,payload_size,0);
         *new_pkt_size = total_pkt_size;
         return ethernet_hdr;
     }
@@ -361,8 +383,8 @@ ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
 
     //Set type and FCS fields
     vlan_ethernet_hdr->type = old_hdr.type;
-    SET_COMMON_ETH_FCS((ethernet_hdr_t*) vlan_ethernet_hdr,payload_size,0);
-
+    //SET_COMMON_ETH_FCS((ethernet_hdr_t*) vlan_ethernet_hdr,payload_size,0);
+    printf("%s ip address %d %d\n",__FUNCTION__,((arp_hdr_t*)(vlan_ethernet_hdr->payload))->dst_ip,((arp_hdr_t*)(ethernet_hdr->payload))->src_ip);
     *new_pkt_size = total_pkt_size + sizeof(vlan_8021q_hdr_t);
     return (ethernet_hdr_t*) vlan_ethernet_hdr;
 

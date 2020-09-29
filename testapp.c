@@ -9,12 +9,13 @@
 extern graph_t *build_first_topo();
 extern graph_t *build_simple_l2_switch_topo();
 extern graph_t* build_linear_topo();
+extern graph_t * build_dualswitch_topo();
 extern void pkt_dump(ethernet_hdr_t *ethernet_hdr,unsigned int pkt_size);
 graph_t *topo = NULL;
 
 int main(int argc, char **argv){
-    //nw_init_cli();
-    topo = build_simple_l2_switch_topo();
+    nw_init_cli();
+    topo = build_dualswitch_topo();
     // dump_graph(topo);
     // dump_nw_graph(topo);
     // printf("Int value is %u\n",convert_ip_from_str_to_int("192.1.2.2"));
@@ -31,9 +32,9 @@ int main(int argc, char **argv){
     // send_packet_out(message,strlen(message),oif);
     // send_arp_broadcast_request(snode,NULL,"20.1.1.2");
     // dump_arp_table(snode->node_nw_prop.arp_table);
-    //start_shell();
+    start_shell();
 
-    ethernet_hdr_t ethernet_hdr;
+    //ethernet_hdr_t ethernet_hdr;
 
 
     // int  new_packet_size = NULL;
