@@ -101,8 +101,8 @@ static bool_t l2_switch_send_pkt_out(char *pkt, unsigned int pkt_size,
             if(vlan_8021q_hdr == NULL){ 
                 //case 1
                 if(get_access_intf_operating_vlan_id(oif) == -1){
-                    send_packet_out(pkt,pkt_size,oif);
-                    return TRUE;
+                    printf("Error! interface in access mode must have vlan configured.\n");
+                    assert(0);
                 }
                 else{ //case 2
                     return FALSE;

@@ -5,6 +5,7 @@
 #define ARP_REPLY               2
 #define ARP_MSG                 0x0806
 #define VLAN_TAGGED_ETH_HDR     0x8100
+#define ETH_IP                  0x0800
 #define BROADCAST_MAC           0xFFFFFFFFFFFF
 
 #define MAX_VLAN_MEMBERSHIP     10

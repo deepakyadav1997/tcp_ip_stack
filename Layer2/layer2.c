@@ -13,8 +13,8 @@ void init_arp_table(arp_table_t ** arp_table){
 }
 
 arp_entry_t * arp_table_lookup(arp_table_t *arp_table, char *ip_addr){
-    glthread_t *current;
-    arp_entry_t * arp_entry;
+    glthread_t *current = NULL;
+    arp_entry_t * arp_entry = NULL;
 
     ITERATE_GLTHREAD_BEGIN(&arp_table->arp_entries,current){
         arp_entry = arp_glue_to_arp_entry(current);
@@ -46,7 +46,7 @@ bool_t arp_table_entry_add(arp_table_t *arp_table, arp_entry_t *arp_entry){
     }
     init_glthread(&arp_entry->arp_glue);
     glthread_add_next(&arp_table->arp_entries,&arp_entry->arp_glue);
-    //printf("Ip adres in arp %s\n",arp_glue_to_arp_entry(arp_table->arp_entries.right)->oif_name);
+ 
     return TRUE;
 }
 
@@ -200,19 +200,13 @@ static void process_arp_broadcast_request(node_t* node,interface_t* iif,ethernet
     }
     send_arp_reply_message(eth_hdr,iif);
 }
-void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned int pkt_size){
-    //Entry poin in tcp/ip stack from the bottom
-    ethernet_hdr_t * ethernet_hdr = (ethernet_hdr_t*) pkt;
-    
-    int output_vlan_id = 0;
-    if(l2_frame_recv_qualify_on_interface(interface,ethernet_hdr,&output_vlan_id) == FALSE){
-        printf("L2 frame rejected\n");
-        return;
-    }
 
-    printf("L2 frame accepted \n");
-    if(IS_INTF_L3_MODE(interface)){
-        switch (ethernet_hdr->type)
+static void promote_pkt_to_layer2(node_t *node,
+                                interface_t *interface,
+                                ethernet_hdr_t *ethernet_hdr,
+                                uint32_t pkt_size){
+
+    switch (ethernet_hdr->type)
         {
         case ARP_MSG:
             {
@@ -230,11 +224,33 @@ void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned i
                 }
             }
             break;
-        
+        case ETH_IP:
+            {
+
+                break;
+            }
         default:
-            //promote to layer 3
+           
             break;
-        }
+        }                               
+
+
+}
+
+
+void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned int pkt_size){
+    //Entry poin in tcp/ip stack from the bottom
+    ethernet_hdr_t * ethernet_hdr = (ethernet_hdr_t*) pkt;
+    
+    int output_vlan_id = 0;
+    if(l2_frame_recv_qualify_on_interface(interface,ethernet_hdr,&output_vlan_id) == FALSE){
+        printf("L2 frame rejected\n");
+        return;
+    }
+
+    printf("L2 frame accepted \n");
+    if(IS_INTF_L3_MODE(interface)){
+        promote_pkt_to_layer2(node,interface,ethernet_hdr,pkt_size);
     }
     else if(interface->intf_nw_prop.intf_l2_mode == ACCESS || interface->intf_nw_prop.intf_l2_mode == TRUNK){
             unsigned int new_pkt_size = 0;

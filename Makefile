@@ -11,7 +11,8 @@ OBJS=glthreads_lib/glthread.o \
 		  communication.o\
 		  Layer2/layer2.o \
 		  pkt_dump.o	  \
-		  Layer2/l2switch.o
+		  Layer2/l2switch.o \
+		  Layer3/layer3.o
 
 test.exe:testapp.o ${OBJS}	CommandParser/libcli.a
 	${CC} ${CFLAGS} testapp.o ${OBJS} -o test.exe ${LIBS}
@@ -39,6 +40,8 @@ pkt_dump.o:pkt_dump.c
 	${CC} ${CFLAGS} -c -I . pkt_dump.c -o pkt_dump.o
 Layer2/l2switch.o:Layer2/l2switch.c
 	${CC} ${CFLAGS} -c -I . Layer2/l2switch.c -o Layer2/l2switch.o
+Layer3/Layer3.o:Layer3/layer3.c
+	${CC} ${CFLAGS} -c -I . Layer3/layer3.c -o Layer3/layer3.o
 
 
 # CommandParser/libcli.a:

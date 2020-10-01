@@ -4,6 +4,7 @@
 #include "CommandParser/libcli.h"
 #include "cmdcodes.h"
 #include "Layer2/layer2.h"
+#include "Layer3/layer3.h"
 #include<unistd.h>
 
 extern graph_t *build_first_topo();
@@ -32,7 +33,14 @@ int main(int argc, char **argv){
     // send_packet_out(message,strlen(message),oif);
     // send_arp_broadcast_request(snode,NULL,"20.1.1.2");
     // dump_arp_table(snode->node_nw_prop.arp_table);
-    start_shell();
+    rt_table_t rt_table;
+    rt_table_add_direct_route(&rt_table,"192.1.1.3",24);
+    rt_table_add_route(&rt_table,"192.168.1.3",16,"10.1.1.2","eth0/3");
+    rt_table_add_route(&rt_table,"192.168.2.12",8,"10.2.1.2","eth0/3");
+    dump_rt_table(&rt_table);
+    delete_rt_table_entry(&rt_table,"192.168.1.3",24);
+    dump_rt_table(&rt_table);
+    //start_shell();
 
     //ethernet_hdr_t ethernet_hdr;
 

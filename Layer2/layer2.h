@@ -137,13 +137,7 @@ static inline bool_t l2_frame_recv_qualify_on_interface(interface_t *interface,
     //Interface is in access mode but vlan is not configured
     // Only accept untagged packets
     if(interface->intf_nw_prop.intf_l2_mode == ACCESS && get_access_intf_operating_vlan_id(interface) == -1){
-
-        if(!vlan_8021q_hdr){    //Case 3
-            return TRUE;
-        }
-        else{                   //Case 4
-            return FALSE;
-        }
+          return FALSE;   /*case 3 and 4*/
     }
 
     /* Interface is in access mode and vlan is  configured 
