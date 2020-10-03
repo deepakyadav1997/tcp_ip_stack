@@ -2,6 +2,7 @@
 #include<assert.h>
 #include<stdlib.h>
 
+#include "Layer3/layer3.h"
 #include "graph.h"
 #include "net.h"
 #include "utils.h"
@@ -12,6 +13,10 @@ bool_t node_set_loopback_address(node_t *node, char *ip_addr){
     strncpy(NODE_LOOPBACK_ADDR(node),ip_addr,16);
     NODE_LOOPBACK_ADDR(node)[16] = '\0';
     node->node_nw_prop.is_lb_addr_config = TRUE;
+
+    //Add this as a direct address in the routing table
+    rt_table_add_direct_route(node->node_nw_prop.rt_table,ip_addr,32);
+    return TRUE;
 }
 
 bool_t node_set_intf_ip_address(node_t *node, char *local_if, char *ip_addr, char mask){
@@ -23,6 +28,7 @@ bool_t node_set_intf_ip_address(node_t *node, char *local_if, char *ip_addr, cha
     IF_IP(interface)[16] = '\0';
     interface->intf_nw_prop.mask = mask;
     interface->intf_nw_prop.is_ipaddr_config = TRUE;
+    rt_table_add_direct_route(node->node_nw_prop.rt_table,ip_addr,mask);
     return TRUE;
 
 }

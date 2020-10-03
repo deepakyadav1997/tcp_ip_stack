@@ -4,7 +4,7 @@
 #include<arpa/inet.h>
 
 void init_rt_table(rt_table_t **rt_table){
-    rt_table = calloc(1,sizeof(rt_table_t));
+    *rt_table = calloc(1,sizeof(rt_table_t));
     init_glthread(&((*rt_table)->route_list));
 }
 
@@ -28,7 +28,8 @@ void rt_table_add_route(rt_table_t *rt_table,
 
     //duplicate entry
     if(l3_route != NULL){
-        assert(!l3_route);
+        printf("Route already exists. Skipping...\n");
+        ///assert(!l3_route);
     }
     
 
@@ -55,7 +56,7 @@ void rt_table_add_route(rt_table_t *rt_table,
 
 static void dump_l3_route(l3_route_t* l3_route){
     
-    printf("Dest: %s/%d",l3_route->dest,l3_route->mask);
+    printf("\nDest: %s/%d",l3_route->dest,l3_route->mask);
     if(l3_route->is_direct == FALSE){
         printf("\tGateway IP:%s  OIF:%s\n",l3_route->gw_ip,l3_route->oif);
     }
