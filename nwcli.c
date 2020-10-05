@@ -11,7 +11,7 @@
 extern graph_t *topo;
 
 extern void dump_mac_table(mac_table_t * mac_table);
-
+extern void layer5_ping_fn(node_t * node,char* dst_ip);
 static int show_nw_topology_handler(param_t *param,ser_buff_t *tlv_buffer,op_mode enable_or_disable){
     int CMDCODE = -1;
     CMDCODE = EXTRACT_CMD_CODE(tlv_buffer);
@@ -86,14 +86,13 @@ static int l3_config_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_
     }
 }
 
-static int arp_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_disable){
+static int cmd_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_disable){
     int CMDCODE = -1;
     CMDCODE = EXTRACT_CMD_CODE(tlv_buf);
     char *node_name = NULL;
     node_t *node;
     char *ip_address = NULL;
     tlv_struct_t * tlv;
-    char *ip_addr = NULL;
     TLV_LOOP_BEGIN(tlv_buf,tlv){
         if(strncmp(tlv->leaf_id,"node_name",strlen("node_name")) == 0){
             node_name = tlv->value;
@@ -122,6 +121,10 @@ static int arp_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
     case CMD_CODE_SHOW_RT_TABLE:
         if(node)
             dump_rt_table(node->node_nw_prop.rt_table);
+    case RUN_NODE_PING:
+        if(node)
+            layer5_ping_fn(node,ip_address);
+            
     default:
         break;
     }
@@ -160,11 +163,24 @@ void nw_init_cli(){
                 {
                     //run node <node-name> resolve-arp <ip-address>
                     static param_t ip_address;
-                    init_param(&ip_address,LEAF,0,arp_handler,0,STRING,"ip-address","IP address");
+                    init_param(&ip_address,LEAF,0,cmd_handler,0,STRING,"ip-address","IP address");
                     libcli_register_param(&resolve_arp,&ip_address);
                     set_param_cmd_code(&ip_address,RUN_NODE_RESOLVE_ARP);
                 }
 
+            }
+            {
+                //run node <node-name> ping <ip-address>
+                static param_t ping;
+                init_param(&ping,CMD,"ping",0,0,INVALID,0,"ping");
+                libcli_register_param(&node_name,&ping);
+                {
+                    //run node <node-name> ping <ip-address>
+                    static param_t ip_address;
+                    init_param(&ip_address,LEAF,0,cmd_handler,0,STRING,"ip-address","IP address");
+                    libcli_register_param(&ping,&ip_address);
+                    set_param_cmd_code(&ip_address,RUN_NODE_PING);
+                }
             }
         }
 
@@ -177,18 +193,18 @@ void nw_init_cli(){
         {   
             // show node node_name -----------displays arp table
             static param_t node_name;
-            init_param(&node_name,LEAF,0,arp_handler,0,STRING,"node_name","Dump arp table\n");
+            init_param(&node_name,LEAF,0,cmd_handler,0,STRING,"node_name","Dump arp table\n");
             libcli_register_param(&node,&node_name);
             set_param_cmd_code(&node_name,DUMP_ARP_TABLE);
             {
                 static param_t mac;
-                init_param(&mac,CMD,"mac",arp_handler,0,INVALID,0,"Display mac table");
+                init_param(&mac,CMD,"mac",cmd_handler,0,INVALID,0,"Display mac table");
                 libcli_register_param(&node_name,&mac);
                 set_param_cmd_code(&mac,CMDCODE_SHOW_MAC_TABLE);
             }
             {
                 static param_t rt;
-                init_param(&rt,CMD,"rt",arp_handler,0,INVALID,0,"Dumping routing table");
+                init_param(&rt,CMD,"rt",cmd_handler,0,INVALID,0,"Dumping routing table");
                 libcli_register_param(&node_name,&rt);
                 set_param_cmd_code(&rt,CMD_CODE_SHOW_RT_TABLE);
             }

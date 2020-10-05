@@ -7,6 +7,7 @@
 #define CMDCODE_SHOW_MAC_TABLE       14
 #define CMD_CODE_SHOW_RT_TABLE       15   
 #define CMDCODE_CONF_NODE_L3ROUTE    16
+#define RUN_NODE_PING                17
 
 void nw_init_cli();
 #endif

@@ -8,6 +8,7 @@
 
 #include<stdlib.h>
 #include<memory.h>
+#include<stdint.h>
   
 #define ETH_HDR_SIZE_EXCL_PAYLOAD                                                       \
     (sizeof(ethernet_hdr_t) - sizeof(((ethernet_hdr_t*)0)->payload))
@@ -258,6 +259,16 @@ ethernet_hdr_t * tag_pkt_with_vlan_id(ethernet_hdr_t *ethernet_hdr,
                                      int vlan_id,
                                      unsigned int *new_pkt_size);
 
+void promote_pkt_to_layer2(node_t *node,
+                                interface_t *interface,
+                                ethernet_hdr_t *ethernet_hdr,
+                                uint32_t pkt_size);
+
+void demote_pkt_to_layer2(node_t *node, /*Currenot node*/ 
+        unsigned int next_hop_ip,  /*If pkt is forwarded to next router, then this is Nexthop IP address (gateway) provided by L3 layer. L2 need to resolve ARP for this IP address*/
+        char *outgoing_intf,       /*The oif obtained from L3 lookup if L3 has decided to forward the pkt. If NULL, then L2 will find the appropriate interface*/
+        char *pkt, unsigned int pkt_size,   /*Higher Layers payload*/
+        int protocol_number);               /*Higher Layer need to tell L2 what value need to be feed in eth_hdr->type field*/
 
 
 #endif

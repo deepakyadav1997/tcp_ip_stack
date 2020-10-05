@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+#commands
+commands.txt
+
 # Object files
 *.o
 *.ko

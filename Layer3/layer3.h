@@ -9,6 +9,7 @@
 #include<stdlib.h>
 
 /*The Ip hdr format as per the standard specification*/
+#pragma pack (push)
 typedef struct ip_hdr_{
 
     unsigned int version : 4 ;  /*version number, always 4 for IPv4 protocol*/    
@@ -105,5 +106,16 @@ void dump_rt_table(rt_table_t *rt_table);
 
 l3_route_t * l3rib_lookup_lpm(rt_table_t *rt_table,
                               unsigned int dest_ip);
+
+void promote_pkt_to_layer3(node_t *node,                /*Current node on which the pkt is received*/
+                      interface_t *interface,           /*ingress interface*/
+                      char *pkt, unsigned int pkt_size, /*L3 payload*/
+                      int L3_protocol_number);          /*obtained from eth_hdr->type field*/
+                    
+void
+demote_packet_to_layer3(node_t *node, 
+                        char *pkt, unsigned int size,
+                        int protocol_number,            /*L4 or L5 protocol type*/
+                        unsigned int dest_ip_address);
 
 #endif

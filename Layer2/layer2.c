@@ -201,7 +201,7 @@ static void process_arp_broadcast_request(node_t* node,interface_t* iif,ethernet
     send_arp_reply_message(eth_hdr,iif);
 }
 
-static void promote_pkt_to_layer2(node_t *node,
+void promote_pkt_to_layer2(node_t *node,
                                 interface_t *interface,
                                 ethernet_hdr_t *ethernet_hdr,
                                 uint32_t pkt_size){
@@ -233,6 +233,15 @@ static void promote_pkt_to_layer2(node_t *node,
            
             break;
         }                               
+
+
+}
+
+void demote_pkt_to_layer2(node_t *node,unsigned int next_hop_ip,char *outgoing_intf,      
+                          char *pkt, unsigned int pkt_size,   
+                          int protocol_number){               
+
+
 
 
 }
