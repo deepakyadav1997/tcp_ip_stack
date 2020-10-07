@@ -175,7 +175,7 @@ int pkt_recieve(node_t *node,interface_t *interface,char* pkt,unsigned int pkt_s
 
     //Further processing of the packet 
     layer2_frame_recv(node,interface,pkt,pkt_size);
-    printf("%s returned\n",__FUNCTION__);
+    //printf("%s returned\n",__FUNCTION__);
     return 0;
 }
 

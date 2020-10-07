@@ -58,6 +58,8 @@ clean:
 	rm glthreads_lib/glthread.o
 	rm *exe
 	rm Layer2/*.o
+	rm Layer3/*.o
+	rm Layer5/*.o
 clean_all:
 	clean
 	(cd CommandParser;make clean)

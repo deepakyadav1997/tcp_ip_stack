@@ -5,6 +5,12 @@
 
 #include "layer2.h"
 #include "l2switch.h"
+#include "../Layer3/layer3.h"
+
+extern bool_t
+is_layer3_local_delivery(node_t *node, 
+                         uint32_t dst_ip);
+
 
 
 void init_arp_table(arp_table_t ** arp_table){
@@ -226,7 +232,9 @@ void promote_pkt_to_layer2(node_t *node,
             break;
         case ETH_IP:
             {
-
+                promote_pkt_to_layer3(node,interface,
+                        GET_ETHERNET_HDR_PAYLOAD(ethernet_hdr),pkt_size - ETH_HDR_SIZE_EXCL_PAYLOAD,
+                        ethernet_hdr->type);
                 break;
             }
         default:
@@ -237,11 +245,86 @@ void promote_pkt_to_layer2(node_t *node,
 
 }
 
+void
+l2_forward_ip_packet(node_t* node,unsigned int next_hop_ip,
+                    char* outgoing_intf,ethernet_hdr_t* pkt,
+                    unsigned int pkt_size){
+    
+    interface_t* oif = NULL;
+    char next_hop_ip_str[16];
+    arp_entry_t * arp_entry = NULL;
+    ethernet_hdr_t *ethernet_hdr = (ethernet_hdr_t*)pkt;
+    unsigned int ethernet_payload_size = pkt_size - GET_ETH_HDR_SIZE_EXCL_PAYLOAD(ethernet_hdr);
+
+    next_hop_ip = htonl(next_hop_ip);
+    inet_ntop(AF_INET,&next_hop_ip,next_hop_ip_str,16);
+
+    //reverse again back  since htonl reverses byte order
+    next_hop_ip = htonl(next_hop_ip);
+    
+    if(outgoing_intf){
+        oif = get_node_if_by_name(node,outgoing_intf);
+        assert(oif);
+        
+        arp_entry = arp_table_lookup(node->node_nw_prop.arp_table,next_hop_ip_str);
+        if(! arp_entry){
+            //On demand arp resolution
+            assert(0); //temporary
+            send_arp_broadcast_request(node,oif,next_hop_ip_str);
+            return;
+        }
+        goto l2_frame_prep;
+    }
+    //self ping
+    if(is_layer3_local_delivery(node,next_hop_ip)){
+        promote_pkt_to_layer3(node,
+                              0,
+                              GET_ETHERNET_HDR_PAYLOAD(pkt),
+                              pkt_size - GET_ETH_HDR_SIZE_EXCL_PAYLOAD(ethernet_hdr),
+                              ethernet_hdr->type);
+        return;
+    }
+    oif = node_get_matching_subnet_interface(node,next_hop_ip_str);
+    if(!oif){
+        printf("NO matching subnet for %s on node %s\n",next_hop_ip_str,node->node_name);
+        return;
+    }
+    arp_entry = arp_table_lookup(node->node_nw_prop.arp_table,next_hop_ip_str); 
+    if(! arp_entry){
+            //On demand arp resolution
+            assert(0); //temporary
+            send_arp_broadcast_request(node,oif,next_hop_ip_str);
+            return;
+    }
+    l2_frame_prep:
+        memcpy(ethernet_hdr->dst_mac.mac,arp_entry->mac_addr.mac,sizeof(mac_add_t));
+        memcpy(ethernet_hdr->src_mac.mac,IF_MAC(oif),sizeof(mac_add_t));
+        send_packet_out((char*) ethernet_hdr,pkt_size,oif); 
+
+}
+void 
+layer2_pkt_recieve_from_top(node_t *node,unsigned int next_hop_ip,char *outgoing_intf,      
+                          char *pkt, unsigned int pkt_size,   
+                          int protocol_number){
+
+    assert(pkt_size < sizeof(((ethernet_hdr_t*)0)->payload));
+    if(protocol_number == ETH_IP){
+        ethernet_hdr_t * empty_ethernet_hdr = ALLOC_ETH_HDR_WITH_PAYLOAD(pkt,pkt_size);
+        empty_ethernet_hdr->type = ETH_IP; 
+        l2_forward_ip_packet(node,next_hop_ip,
+                            outgoing_intf,empty_ethernet_hdr,
+                            pkt_size + GET_ETH_HDR_SIZE_EXCL_PAYLOAD(empty_ethernet_hdr));
+    }
+
+}
+
 void demote_pkt_to_layer2(node_t *node,unsigned int next_hop_ip,char *outgoing_intf,      
                           char *pkt, unsigned int pkt_size,   
                           int protocol_number){               
 
-
+    layer2_pkt_recieve_from_top(node,next_hop_ip,outgoing_intf,
+                                pkt,pkt_size,
+                                protocol_number);                         
 
 
 }
@@ -253,11 +336,11 @@ void layer2_frame_recv(node_t * node,interface_t *interface,char* pkt,unsigned i
     
     int output_vlan_id = 0;
     if(l2_frame_recv_qualify_on_interface(interface,ethernet_hdr,&output_vlan_id) == FALSE){
-        printf("L2 frame rejected\n");
+        printf("L2 frame rejected on interface %s\n",interface->if_name);
         return;
     }
 
-    printf("L2 frame accepted \n");
+    //printf("L2 frame accepted \n");
     if(IS_INTF_L3_MODE(interface)){
         promote_pkt_to_layer2(node,interface,ethernet_hdr,pkt_size);
     }

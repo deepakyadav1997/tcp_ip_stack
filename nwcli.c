@@ -121,9 +121,11 @@ static int cmd_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
     case CMD_CODE_SHOW_RT_TABLE:
         if(node)
             dump_rt_table(node->node_nw_prop.rt_table);
+            break;
     case RUN_NODE_PING:
         if(node)
             layer5_ping_fn(node,ip_address);
+            break;
             
     default:
         break;

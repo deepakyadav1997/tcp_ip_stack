@@ -52,7 +52,7 @@ static inline void initialize_ip_hdr(ip_hdr_t *ip_hdr){
     ip_hdr->MORE_flag = 0;
     ip_hdr->frag_offset = 0;
 
-    ip_hdr->ttl = 64; /*Let us use 64*/
+    ip_hdr->ttl = 64; /*Let us use 64 avoids infinite looping of packets*/
     ip_hdr->protocol = 0; /*To be filled by the caller*/
     ip_hdr->checksum = 0; /*Not used in this course*/
     ip_hdr->src_ip = 0; /*To be filled by the caller*/ 

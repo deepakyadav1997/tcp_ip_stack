@@ -7,7 +7,7 @@
 #define VLAN_TAGGED_ETH_HDR     0x8100
 #define ETH_IP                  0x0800
 #define BROADCAST_MAC           0xFFFFFFFFFFFF
-
+#define ICMP_PRO                1
 #define MAX_VLAN_MEMBERSHIP     10
 
 #endif
