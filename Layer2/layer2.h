@@ -219,9 +219,27 @@ typedef struct arp_entry_{
     mac_add_t mac_addr;
     char oif_name[IF_NAME_SIZE];
     glthread_t arp_glue;
-} arp_entry_t;
 
+    bool_t is_sane;
+    glthread_t arp_pending_list;
+} arp_entry_t;
 GLTHREAD_TO_STRUCT(arp_glue_to_arp_entry, arp_entry_t, arp_glue,glthreadptr);
+GLTHREAD_TO_STRUCT(arp_pending_list_to_arp_entry, arp_entry_t, arp_pending_list,glthreadptr);
+
+typedef struct arp_pending_entry_ arp_pending_entry_t;
+typedef void (*arp_processing_fn)(node_t *node,
+                                        interface_t *oif,
+                                        arp_entry_t *arp_entry,
+                                        arp_pending_entry_t *arp_pending_entry);
+
+typedef struct arp_pending_entry_{
+    glthread_t arp_pending_entry_glue;
+    arp_processing_fn cb;
+    uint32_t pkt_size; //including ethernet header
+    char pkt[0];    //always last element.dont add anything after it
+
+}arp_pending_entry_t;
+GLTHREAD_TO_STRUCT(arp_pending_glue_to_arp_entry, arp_pending_entry_t, arp_pending_entry_glue,glthreadptr);
 
 void init_arp_table(arp_table_t ** arp_table);
 
@@ -231,13 +249,28 @@ void clear_arp_table(arp_table_t *arp_table);
 
 void delete_arp_table_entry(arp_table_t *arp_table, char *ip_addr);
 
-bool_t arp_table_entry_add(arp_table_t *arp_table, arp_entry_t *arp_entry);
+bool_t arp_table_entry_add(arp_table_t *arp_table, arp_entry_t *arp_entry,glthread_t **arp_pending_list);
 
 void dump_arp_table(arp_table_t *arp_table);
+
+void add_arp_pending_entry(arp_entry_t* arp_entry,
+                            arp_processing_fn cb,
+                            char* pkt,
+                            unsigned int pkt_size);
 
 void arp_table_update_from_arp_reply(arp_table_t *arp_table,
                                     arp_hdr_t *arp_hdr,
                                     interface_t *iif);
+
+void
+create_arp_sane_entry(arp_table_t *arp_table, char *ip_addr, 
+                       char *pkt, unsigned int pkt_size);
+
+void
+pending_arp_processing_callback_function(node_t *node,   /*Node on which processing is being done*/
+                                        interface_t *oif,/*OIF from which the pkt present in ARP pending entry needs to be sent out*/
+                                        arp_entry_t *arp_entry, /*ARP complete entry*/
+                                        arp_pending_entry_t *arp_pending_entry);
 
 void send_arp_broadcast_request(node_t  *node,
                                 interface_t *oif,
