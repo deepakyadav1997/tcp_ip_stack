@@ -8,6 +8,7 @@
 #define ETH_IP                  0x0800
 #define BROADCAST_MAC           0xFFFFFFFFFFFF
 #define ICMP_PRO                1
+#define IP_IN_IP                4
 #define MAX_VLAN_MEMBERSHIP     10
 
 #endif

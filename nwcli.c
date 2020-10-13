@@ -12,6 +12,8 @@ extern graph_t *topo;
 
 extern void dump_mac_table(mac_table_t * mac_table);
 extern void layer5_ping_fn(node_t * node,char* dst_ip);
+extern void layer5_ero_ping_fn(node_t *node,char* dst_ip,char *ero_ip);
+
 static int show_nw_topology_handler(param_t *param,ser_buff_t *tlv_buffer,op_mode enable_or_disable){
     int CMDCODE = -1;
     CMDCODE = EXTRACT_CMD_CODE(tlv_buffer);
@@ -92,6 +94,7 @@ static int cmd_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
     char *node_name = NULL;
     node_t *node;
     char *ip_address = NULL;
+    char* ero_ip_address = NULL;
     tlv_struct_t * tlv;
     TLV_LOOP_BEGIN(tlv_buf,tlv){
         if(strncmp(tlv->leaf_id,"node_name",strlen("node_name")) == 0){
@@ -99,6 +102,9 @@ static int cmd_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
         }
         else if(strncmp(tlv->leaf_id,"ip-address",strlen("ip-address")) == 0){
             ip_address =tlv->value;
+        }
+        else if(strncmp(tlv->leaf_id,"ero-ip-address",strlen("ero-ip-address")) == 0){
+            ero_ip_address =tlv->value;
         }
     }
     TLV_LOOP_END
@@ -126,7 +132,10 @@ static int cmd_handler(param_t *param, ser_buff_t *tlv_buf,op_mode enable_or_dis
         if(node)
             layer5_ping_fn(node,ip_address);
             break;
-            
+    case RUN_NODE_PING_ERO:
+        if(node)
+            layer5_ero_ping_fn(node,ip_address,ero_ip_address);    
+            break;    
     default:
         break;
     }
@@ -182,6 +191,18 @@ void nw_init_cli(){
                     init_param(&ip_address,LEAF,0,cmd_handler,0,STRING,"ip-address","IP address");
                     libcli_register_param(&ping,&ip_address);
                     set_param_cmd_code(&ip_address,RUN_NODE_PING);
+                    {
+                        //run node <node-name> ping <ip-address> ero <ero-ip-address>
+                        static param_t ero; // Explicit route object
+                        init_param(&ero,CMD,"ero",0,0,INVALID,0,"Explicit route object");
+                        libcli_register_param(&ip_address,&ero);
+                        {
+                            static param_t ero_ip_address;
+                            init_param(&ero_ip_address,LEAF,0,cmd_handler,0,STRING,"ero-ip-address","ERO IP address");
+                            libcli_register_param(&ero,&ero_ip_address);
+                            set_param_cmd_code(&ero_ip_address,RUN_NODE_PING_ERO);
+                        }
+                    }
                 }
             }
         }

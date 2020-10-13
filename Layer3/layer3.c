@@ -183,7 +183,7 @@ is_layer3_local_delivery(node_t *node, unsigned int dst_ip){
 }
 
 static void
-layer3_ip_pkt_recv_from_layer2(node_t* node,interface_t *interface_t,
+layer3_ip_pkt_recv_from_layer2(node_t* node,interface_t *interface,
                                 ip_hdr_t* pkt,uint32_t pkt_size){
 
     unsigned int dest_ip = pkt->dst_ip;
@@ -208,7 +208,14 @@ layer3_ip_pkt_recv_from_layer2(node_t* node,interface_t *interface_t,
             case ICMP_PRO:
                 printf("IP address %s has been pinged successfully\n",dest_ip_str);
                 break;
-            
+            case IP_IN_IP:{
+                ip_hdr_t* new_hdr = (ip_hdr_t*)INCREMENT_IPHDR(pkt);
+                //printf("%s:%s %d %d source and dest  %d\n",__FUNCTION__,node->node_name,new_hdr->dst_ip,new_hdr->src_ip,pkt->total_length);
+                layer3_ip_pkt_recv_from_layer2(node,interface,
+                                            (ip_hdr_t*)INCREMENT_IPHDR(pkt),
+                                            IP_HDR_PAYLOAD_SIZE(pkt));
+                break;
+            }
             default:
                 break;
             }
@@ -270,7 +277,6 @@ layer3_pkt_recv_from_top(node_t *node,
     initialize_ip_hdr(&ip_hdr);
     ip_hdr.protocol = protocol_number; 
     unsigned int addr_int = 0;
-
     inet_pton(AF_INET,NODE_LOOPBACK_ADDR(node),&addr_int);
     addr_int = htonl(addr_int);
 
@@ -298,6 +304,9 @@ layer3_pkt_recv_from_top(node_t *node,
     if(pkt && size){
         memcpy(new_pkt + ip_hdr.ihl * 4,pkt,size);
     }
+    ip_hdr_t* inner_pkt = (ip_hdr_t*)INCREMENT_IPHDR(((ip_hdr_t*)new_pkt));
+    inner_pkt = (ip_hdr_t*)pkt;
+    //printf("%s: %d %d \n",__FUNCTION__,inner_pkt->dst_ip,inner_pkt->src_ip);
     unsigned int nex_hop_ip;
     bool_t is_direct_route = l3_is_direct_route(l3_route); 
     if(is_direct_route == FALSE){
@@ -312,7 +321,6 @@ layer3_pkt_recv_from_top(node_t *node,
     }
     //Create room to append ethernet header or any other headers by the lower levels
     char* shifted_pkt = pkt_buffer_shift_right(new_pkt,new_pkt_size,MAX_PACKET_BUFFER_SIZE);
-
     demote_pkt_to_layer2(node,
                         nex_hop_ip,
                         is_direct_route ? 0 : l3_route->oif,
@@ -334,6 +342,6 @@ demote_packet_to_layer3(node_t *node,
                         char *pkt, unsigned int size,
                         int protocol_number,            /*L4 or L5 protocol type*/
                         unsigned int dest_ip_address){
-
-    layer3_pkt_recv_from_top(node,pkt,size,protocol_number,dest_ip_address);                        
+    
+    layer3_pkt_recv_from_top(node,pkt,size,protocol_number,dest_ip_address);           
 }

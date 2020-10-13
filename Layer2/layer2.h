@@ -120,7 +120,7 @@ static inline ethernet_hdr_t * ALLOC_ETH_HDR_WITH_PAYLOAD(char *pkt, unsigned in
     ethernet_hdr_t * header = (ethernet_hdr_t*)(pkt - ETH_HDR_SIZE_EXCL_PAYLOAD);
     memset((char*)header,0,ETH_HDR_SIZE_EXCL_PAYLOAD);
     memcpy(header->payload,temp,pkt_size);
-    ETH_FCS(header,pkt_size) = 0;
+    SET_COMMON_ETH_FCS(header,pkt_size,0);
     free(temp);
     return header;
 }

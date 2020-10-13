@@ -381,6 +381,8 @@ layer2_pkt_recieve_from_top(node_t *node,unsigned int next_hop_ip,char *outgoing
     if(protocol_number == ETH_IP){
         ethernet_hdr_t * empty_ethernet_hdr = ALLOC_ETH_HDR_WITH_PAYLOAD(pkt,pkt_size);
         empty_ethernet_hdr->type = ETH_IP; 
+        // ip_hdr_t *inner_ip = INCREMENT_IPHDR(((ip_hdr_t*)(empty_ethernet_hdr->payload)));
+        // printf("%s: %d   %d\n",__FUNCTION__,inner_ip->dst_ip,inner_ip->src_ip);
         l2_forward_ip_packet(node,next_hop_ip,
                             outgoing_intf,empty_ethernet_hdr,
                             pkt_size + GET_ETH_HDR_SIZE_EXCL_PAYLOAD(empty_ethernet_hdr));
